@@ -3,7 +3,6 @@ package HTTP::Router;
 use 5.8.1;
 use Moose;
 use MooseX::AttributeHelpers;
-use Hash::Merge qw(merge);
 use HTTP::Router::Route;
 
 has 'routes' => (
@@ -29,34 +28,24 @@ no Moose;
 sub _build_route {
     my ($self, $path, $args) = @_;
 
-    my $options = $args || {};
-
-    my $defaults     = delete $options->{defaults}     || {};
-    my $conditions   = delete $options->{conditions}   || {};
-    my $requirements = delete $options->{requirements} || {};
-
-    # merge
-    if (scalar(keys %$options) > 0) {
-        $defaults = merge($defaults, $options);
-    }
+    $args ||= {};
+    my $conditions   = delete $args->{conditions}   || {};
+    my $requirements = delete $args->{requirements} || {};
 
     return HTTP::Router::Route->new(
         path         => $path,
+        defaults     => $args,
         conditions   => $conditions,
         requirements => $requirements,
-        defaults     => $defaults,
     );
 }
 
 sub match {
-    my ($self, $req) = @_;
+    my ($self, $path, $args) = @_;
 
-    unless (blessed $req) {
-        confess "Request Object required";
-    }
-
+    my $conditions = $args || {};
     for my $route ($self->routes) {
-        if (my $match = $route->match($req)) {
+        if (my $match = $route->match($path, $conditions)) {
             return $match;
         }
     }

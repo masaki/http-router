@@ -4,14 +4,12 @@ all_from 'lib/HTTP/Router.pm';
 
 requires 'Moose';
 requires 'MooseX::AttributeHelpers';
+requires 'List::MoreUtils';
+requires 'Storable';
 
 tests 't/*.t';
 test_requires 'Test::More';
 test_requires 'Test::use::ok';
-test_requires 'YAML';
-test_requires 'HTTP::Request';
-test_requires 'URI';
-test_requires 'Test::MockObject';
 author_tests 'xt';
 use_test_base;
 

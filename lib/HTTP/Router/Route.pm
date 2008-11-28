@@ -1,6 +1,8 @@
 package HTTP::Router::Route;
 
 use Moose;
+use MooseX::AttributeHelpers;
+use List::MoreUtils qw(true);
 use Storable qw(dclone);
 
 has 'path' => (
@@ -11,25 +13,12 @@ has 'path' => (
         my ($self, $path) = @_;
 
         # emulate named capture
-        my @capture;
-        my $re = $path || $self->path;
-        $re =~ s/{(\w+)}/ push @capture, $1; '(.+)' /ge;
+        my @captures;
+        (my $pattern = $path) =~ s!{(\w+)}!push @captures, $1; '([^/]+)'!ge;
 
-        $self->re(qr{^$re$});
-        $self->capture(\@capture);
+        $self->pattern(qr{^$pattern$});
+        $self->captures(\@captures);
     },
-);
-
-has 'conditions' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
-);
-
-has 'requirements' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
 );
 
 has 'defaults' => (
@@ -38,14 +27,31 @@ has 'defaults' => (
     default => sub { +{} },
 );
 
-has 're' => (
+has 'conditions' => (
+    metaclass => 'Collection::Hash',
+    is        => 'rw',
+    isa       => 'HashRef[Str|ArrayRef|RegexpRef]',
+    default   => sub { +{} },
+    provides  => {
+        empty => 'has_conditions',
+        kv    => 'each_conditions',
+    },
+);
+
+has 'requirements' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { +{} },
+);
+
+has 'pattern' => (
     is  => 'rw',
     isa => 'RegexpRef',
 );
 
-has 'capture' => (
+has 'captures' => (
     is         => 'rw',
-    isa        => 'ArrayRef',
+    isa        => 'ArrayRef[Str]',
     auto_deref => 1,
 );
 
@@ -54,37 +60,37 @@ __PACKAGE__->meta->make_immutable;
 no Moose;
 
 sub match {
-    my ($self, $req) = @_;
+    my ($self, $path, $conditions) = @_;
 
-    return unless blessed $req; # no request object
-    return unless $self->_check_conditions($req);
+    if ($self->has_conditions) {
+        for my $kv ($self->each_conditions) {
+            my ($name, $expected) = @$kv;
 
-    my $path;
-    if ($req->can('path')) {
-        $path = $req->path;
-    }
-    elsif (blessed $req->uri) {
-        $path = $req->uri->path;
-    }
-    else {
-        $path = $req->uri;
+            # condition missing
+            return unless exists $conditions->{$name};
+
+            my $condition = $conditions->{$name};
+            if (ref $expected eq 'Regexp') {
+                return unless $condition =~ $expected;
+            }
+            elsif (reftype $expected eq 'ARRAY') {
+                return unless true { $condition eq $_ } @$expected;
+            }
+            else {
+                return unless $condition eq $expected;
+            }
+        }
     }
 
-    if ($self->path =~ m!^/!) {
-        $path = "/$path" unless $path =~ m!^/!;
-    }
-    else {
-        $path =~ s!^/+!!;
-    }
-
-    return unless $path =~ $self->re;
+    $path = "/$path" unless $path =~ m!^/!;
+    return unless $path =~ $self->pattern;
 
     # from HTTPx::Dispatcher
     my @start = @-;
     my @end   = @+;
-    my $match = dclone($self->defaults);
+    my $match = dclone $self->defaults;
     my $index = 1;
-    for my $key ($self->capture) {
+    for my $key ($self->captures) {
         my $start = $start[$index];
         my $end   = $end[$index] - $start[$index];
         my $value = substr $path, $start, $end;
@@ -99,17 +105,6 @@ sub match {
     }
 
     return $match;
-}
-
-sub _check_conditions {
-    my ($self, $req) = @_;
-
-    return 1 unless my $method = $self->conditions->{method};
-
-    $method = [ $method ] unless ref $method;
-    my $expect = uc $req->method eq 'HEAD' ? 'GET' : uc $req->method;
-
-    return scalar( grep { $expect eq uc $_ } @$method ) > 0;
 }
 
 sub uri_for {
