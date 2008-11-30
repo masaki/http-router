@@ -21,7 +21,7 @@ has 'path' => (
     },
 );
 
-has 'defaults' => (
+has 'params' => (
     is      => 'rw',
     isa     => 'HashRef',
     default => sub { +{} },
@@ -30,18 +30,23 @@ has 'defaults' => (
 has 'conditions' => (
     metaclass => 'Collection::Hash',
     is        => 'rw',
-    isa       => 'HashRef[Str|ArrayRef|RegexpRef]',
+    isa       => 'HashRef[ Str | RegexpRef | ArrayRef ]',
     default   => sub { +{} },
     provides  => {
-        empty => 'has_conditions',
-        kv    => 'each_conditions',
+        get  => 'condition',
+        keys => 'condition_names',
     },
 );
 
 has 'requirements' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
+    metaclass => 'Collection::Hash',
+    is        => 'rw',
+    isa       => 'HashRef[ Str | RegexpRef | ArrayRef ]',
+    default   => sub { +{} },
+    provides  => {
+        get    => 'requirement',
+        exists => 'has_requirement',
+    },
 );
 
 has 'pattern' => (
@@ -55,49 +60,33 @@ has 'captures' => (
     auto_deref => 1,
 );
 
-__PACKAGE__->meta->make_immutable;
-
-no Moose;
-
 sub match {
     my ($self, $path, $conditions) = @_;
 
-    if ($self->has_conditions) {
-        for my $kv ($self->each_conditions) {
-            my ($name, $expected) = @$kv;
-
-            # condition missing
-            return unless exists $conditions->{$name};
-
-            my $condition = $conditions->{$name};
-            if (ref $expected eq 'Regexp') {
-                return unless $condition =~ $expected;
-            }
-            elsif (reftype $expected eq 'ARRAY') {
-                return unless true { $condition eq $_ } @$expected;
-            }
-            else {
-                return unless $condition eq $expected;
-            }
-        }
+    # check conditions
+    for my $name ($self->condition_names) {
+        my $condition = $conditions->{$name};
+        return unless defined $condition; # missing
+        return unless $self->_validate($condition, $self->condition($name));
     }
 
+    # check path
     $path = "/$path" unless $path =~ m!^/!;
     return unless $path =~ $self->pattern;
 
     # from HTTPx::Dispatcher
     my @start = @-;
     my @end   = @+;
-    my $match = dclone $self->defaults;
+    my $match = dclone $self->params;
     my $index = 1;
     for my $key ($self->captures) {
         my $start = $start[$index];
         my $end   = $end[$index] - $start[$index];
         my $value = substr $path, $start, $end;
 
-        # requirements - validation
-        if (exists $self->requirements->{$key}) {
-            return unless $value =~ $self->requirements->{$key};
+        # check requirements
+        if ($self->has_requirement($key)) {
+            return unless $self->_validate($value, $self->requirement($key));
         }
 
         $match->{$key} = $value;
@@ -119,13 +108,25 @@ sub uri_for {
     return $path;
 }
 
+sub _validate {
+    my ($self, $input, $expected) = @_;
+
+    return $input =~ $expected              if ref $expected eq 'Regexp';
+    return true { $input eq $_ } @$expected if ref $expected eq 'ARRAY';
+    return $input eq $expected;
+}
+
 sub _uri_for_match {
     my ($self, $path, $key, $value) = @_;
 
-    return $path if exists $self->defaults->{$key} and $self->defaults->{$key} eq $value;
+    return $path if exists $self->params->{$key} and $self->params->{$key} eq $value;
     return $path if $path =~ s/{$key}/$value/;
     return;
 }
+
+__PACKAGE__->meta->make_immutable;
+
+no Moose;
 
 1;
 

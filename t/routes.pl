@@ -1,25 +1,24 @@
 [
-    [ "/" => {
-        defaults => { controller => "Root", action => "index" },
-    }],
+    # /
+    [ "/" => { controller => "Root", action => "index" } ],
 
+    # /account/login
     [ "/account/login" => {
-        defaults => { controller => "Account", action => "login" },
+        controller => "Account", action => "login",
         conditions => { method => ["GET", "POST"] },
     }],
 
+    # /articles/{article_id}
     [ "/articles/{article_id}" => {
-        defaults => { controller => "Article", action => "show" },
+        controller => "Article", action => "show",
         conditions => { method => "GET" },
     }],
-
     [ "/articles/{article_id}" => {
-        defaults => { controller => "Article", action => "update" },
+        controller => "Article", action => "update",
         conditions => { method => "PUT" },
     }],
-
     [ "/articles/{article_id}" => {
-        defaults => { controller => "Article", action => "destroy" },
+        controller => "Article", action => "destroy",
         conditions => { method => "DELETE" },
     }],
 ]

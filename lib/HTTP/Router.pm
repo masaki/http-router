@@ -7,11 +7,13 @@ use HTTP::Router::Route;
 
 has 'routes' => (
     metaclass  => 'Collection::Array',
-    is         => 'ro',
+    is         => 'rw',
     isa        => 'ArrayRef[HTTP::Router::Route]',
-    default    => sub { [] },
     auto_deref => 1,
-    provides   => { 'push' => 'connect' },
+    default    => sub { [] },
+    provides   => {
+        push => 'connect',
+    },
 );
 
 around 'connect' => sub {
@@ -20,10 +22,6 @@ around 'connect' => sub {
 };
 
 our $VERSION = '0.01';
-
-__PACKAGE__->meta->make_immutable;
-
-no Moose;
 
 sub _build_route {
     my ($self, $path, $args) = @_;
@@ -34,7 +32,7 @@ sub _build_route {
 
     return HTTP::Router::Route->new(
         path         => $path,
-        defaults     => $args,
+        params       => $args,
         conditions   => $conditions,
         requirements => $requirements,
     );
@@ -65,6 +63,10 @@ sub uri_for {
     return;
 }
 
+__PACKAGE__->meta->make_immutable;
+
+no Moose;
+
 1;
 
 =head1 NAME
@@ -78,67 +80,56 @@ HTTP::Router - Yet Another HTTP Dispatcher
   my $router = HTTP::Router->new;
 
   $router->connect('/' => {
-      defaults => { controller => 'Root', action => 'index' },
+      controller => 'Root',
+      action     => 'index',
   });
 
   $router->connect('/archives/{year}/{month}' => {
-      defaults => {
-          controller => 'Archive',
-          action     => 'show',
-      },
+      controller   => 'Archive',
+      action       => 'show',
       requirements => {
           year  => qr/\d{4}/,
           month => qr/\d{2}/,
-      }
+      },
   });
 
   $router->connect('/users/{username}' => {
-      defaults => {
-          controller => 'User',
-          action     => 'show',
-      },
-      requirements => { username => qr// },
+      controller   => 'User',
+      action       => 'show',
+      requirements => { username => qr/^[a-z]+$/ },
   });
 
   $router->connect('/articles/{article_id}' => {
-      defaults => {
-          controller => 'Article',
-          action     => 'show',
-      },
+      controller => 'Article',
+      action     => 'show',
       conditions => { method => 'GET' },
   });
   $router->connect('/articles/{article_id}' => {
-      defaults => {
-          controller => 'Article',
-          action     => 'update',
-      },
+      controller => 'Article',
+      action     => 'update',
       conditions => { method => 'PUT' },
   });
   $router->connect('/articles/{article_id}' => {
-      defaults => {
-          controller => 'Article',
-          action     => 'destroy',
-      },
+      controller => 'Article',
+      action     => 'destroy',
       conditions => { method => 'DELETE' },
   });
 
   $router->connect('/account/login' => {
-      defaults => {
-          controller => 'Account',
-          action     => 'login',
-      },
+      controller => 'Account',
+      action     => 'login',
       conditions => { method => ['GET', 'POST'] },
   });
 
-  # $req->uri is '/'
-  if ( my $match = $router->match($req) ){
+  # $path is '/'
+  if ( my $match = $router->match($path) ){
       print $match->{controller}; # 'Root'
       print $match->{action};     # 'index'
   }
 
-  # $req->uri is '/articles/14'
-  # $req->method is 'PUT'
-  if ( my $match = $router->match($req) ){
+  # $path   is '/articles/14'
+  # $method is 'PUT'
+  if ( my $match = $router->match($path, { method => $method }) ){
       print $match->{controller}; # 'Article'
       print $match->{action};     # 'update'
       print $match->{article_id}; # '14'
@@ -154,7 +145,7 @@ HTTP::Router is HTTP Dispatcher
 
 =head2 connect($path, $args)
 
-=head2 match($req)
+=head2 match($path, $conditions)
 
 =head2 uri_for($args)
 
