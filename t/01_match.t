@@ -1,11 +1,8 @@
-use Test::Base;
-use HTTP::Router;
+use t::Router;
 
 plan tests => 1 * blocks;
 
-my $routes = eval { require 't/routes.pl' };
-my $router = HTTP::Router->new;
-$router->connect(@$_) for @$routes;
+my $router = build_router();
 
 filters {
     conditions => ['eval'],
@@ -14,7 +11,6 @@ filters {
 
 run {
     my $block = shift;
-
     my $match = $router->match($block->path, $block->conditions);
     is_deeply $match, $block->expected;
 };
