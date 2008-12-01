@@ -86,17 +86,20 @@ HTTP::Router - Yet Another HTTP Dispatcher
 
   $router->connect('/archives/{year}/{month}' => {
       controller   => 'Archive',
-      action       => 'show',
-      requirements => {
-          year  => qr/\d{4}/,
-          month => qr/\d{2}/,
-      },
+      action       => 'by_month',
+      requirements => { year => qr/\d{4}/, month => qr/\d{2}/ },
   });
 
   $router->connect('/users/{username}' => {
       controller   => 'User',
       action       => 'show',
-      requirements => { username => qr/^[a-z]+$/ },
+      requirements => { username => 'masaki' },
+  });
+
+  $router->connect('/account/login' => {
+      controller => 'Account',
+      action     => 'login',
+      conditions => { method => ['GET', 'POST'] },
   });
 
   $router->connect('/articles/{article_id}' => {
@@ -115,24 +118,19 @@ HTTP::Router - Yet Another HTTP Dispatcher
       conditions => { method => 'DELETE' },
   });
 
-  $router->connect('/account/login' => {
-      controller => 'Account',
-      action     => 'login',
-      conditions => { method => ['GET', 'POST'] },
-  });
+  if ( my $match = $router->match('/') ){
+      print $match->path; # '/'
 
-  # $path is '/'
-  if ( my $match = $router->match($path) ){
-      print $match->{controller}; # 'Root'
-      print $match->{action};     # 'index'
+      print $match->params->{controller}; # 'Root'
+      print $match->params->{action};     # 'index'
   }
 
-  # $path   is '/articles/14'
-  # $method is 'PUT'
-  if ( my $match = $router->match($path, { method => $method }) ){
-      print $match->{controller}; # 'Article'
-      print $match->{action};     # 'update'
-      print $match->{article_id}; # '14'
+  if ( my $match = $router->match('/articles/14', { method => 'PUT' }) ){
+      print $match->path; # '/articles/14'
+
+      print $match->params->{controller}; # 'Article'
+      print $match->params->{action};     # 'update'
+      print $match->params->{article_id}; # '14'
   }
 
 =head1 DESCRIPTION
@@ -160,6 +158,6 @@ it under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-L<HTTPx::Dispatcher>, L<Path::Router>
+L<HTTPx::Dispatcher>, L<Path::Router>, L<Path::Dispatcher>
 
 =cut

@@ -9,6 +9,22 @@
         conditions => { method => ["GET", "POST"] },
     }],
 
+    # /archives/{year}
+    [ "/archives/{year}" => {
+        controller => "Archive", action => "by_year",
+        requirements => { year => qr/^\d{4}$/ },
+    }],
+    # /archives/{year}/{month}
+    [ "/archives/{year}/{month}" => {
+        controller => "Archive", action => "by_month",
+        requirements => { year => qr/^\d{4}$/, month => qr/^\d{2}$/ },
+    }],
+    # /archives/{year}/{month}/{day}
+    [ "/archives/{year}/{month}/{day}" => {
+        controller => "Archive", action => "by_day",
+        requirements => { year => qr/^\d{4}$/, month => qr/^\d{2}$/, day => qr/^\d{2}$/ },
+    }],
+
     # GET /articles
     [ "/articles" => {
         controller => "Article", action => "index",

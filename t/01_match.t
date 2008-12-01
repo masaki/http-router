@@ -1,80 +1,105 @@
 use t::Router;
 
-plan tests => 1 * blocks;
+plan tests => 2 * blocks;
 
 my $router = build_router();
 
 filters {
     conditions => ['eval'],
-    expected   => ['yaml'],
+    params     => ['yaml'],
 };
 
 run {
     my $block = shift;
     my $match = $router->match($block->path, $block->conditions);
-    is_deeply $match, $block->expected, $block->name;
+    is_deeply $match->params, $block->params, "@{[ $block->name ]} (params)";
+    is $match->path, $block->path, "@{[ $block->name ]} (path)";
 };
 
 __END__
 === /
 --- path: /
---- expected
+--- params
 controller: Root
 action: index
 
 === GET /
 --- path: /
 --- conditions: { method => 'GET' }
---- expected
+--- params
 controller: Root
 action: index
 
 === POST /
 --- path: /
 --- conditions: { method => 'POST' }
---- expected
+--- params
 controller: Root
 action: index
 
 === GET /account/login
 --- path: /account/login
 --- conditions: { method => 'GET' }
---- expected
+--- params
 controller: Account
 action: login
 
 === POST /account/login
 --- path: /account/login
 --- conditions: { method => 'POST' }
---- expected
+--- params
 controller: Account
 action: login
+
+=== GET /archives/{year}
+--- path: /archives/2008
+--- params
+controller: Archive
+action: by_year
+year: 2008
+
+=== GET /archives/{year}/{month}
+--- path: /archives/2008/12
+--- params
+controller: Archive
+action: by_month
+year: 2008
+month: 12
+
+=== GET /archives/{year}/{month}/{day}
+--- path: /archives/2008/12/31
+--- params
+controller: Archive
+action: by_day
+year: 2008
+month: 12
+day: 31
 
 === GET /articles
 --- path: /articles
 --- conditions: { method => 'GET' }
---- expected
+--- params
 controller: Article
 action: index
 
 === GET /articles/new
 --- path: /articles/new
 --- conditions: { method => 'GET' }
---- expected
+--- params
 controller: Article
 action: post
 
 === POST /articles
 --- path: /articles
 --- conditions: { method => 'POST' }
---- expected
+--- params
 controller: Article
 action: create
 
 === GET /articles/{article_id}
 --- path: /articles/14
 --- conditions: { method => 'GET' }
---- expected
+--- params
 controller: Article
 action: show
 article_id: 14
@@ -82,7 +107,7 @@ article_id: 14
 === GET /articles/{article_id}/edit
 --- path: /articles/14/edit
 --- conditions: { method => 'GET' }
---- expected
+--- params
 controller: Article
 action: edit
 article_id: 14
@@ -90,7 +115,7 @@ article_id: 14
 === PUT /articles/{article_id}
 --- path: /articles/15
 --- conditions: { method => 'PUT' }
---- expected
+--- params
 controller: Article
 action: update
 article_id: 15
@@ -98,7 +123,7 @@ article_id: 15
 === DELETE /articles/{article_id}
 --- path: /articles/16
 --- conditions: { method => 'DELETE' }
---- expected
+--- params
 controller: Article
 action: destroy
 article_id: 16

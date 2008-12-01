@@ -4,6 +4,7 @@ use Moose;
 use MooseX::AttributeHelpers;
 use List::MoreUtils qw(true);
 use Storable qw(dclone);
+use HTTP::Router::Match;
 
 has 'path' => (
     is       => 'rw',
@@ -65,9 +66,9 @@ sub match {
 
     # check conditions
     for my $name ($self->condition_names) {
-        my $condition = $conditions->{$name};
-        return unless defined $condition; # missing
-        return unless $self->_validate($condition, $self->condition($name));
+        my $input = $conditions->{$name};
+        return unless defined $input; # missing
+        return unless $self->_validate($input, $self->condition($name));
     }
 
     # check path
@@ -77,8 +78,9 @@ sub match {
     # from HTTPx::Dispatcher
     my @start = @-;
     my @end   = @+;
-    my $match = dclone $self->params;
     my $index = 1;
+
+    my $params = dclone $self->params;
     for my $key ($self->captures) {
         my $start = $start[$index];
         my $end   = $end[$index] - $start[$index];
@@ -89,11 +91,11 @@ sub match {
             return unless $self->_validate($value, $self->requirement($key));
         }
 
-        $match->{$key} = $value;
+        $params->{$key} = $value;
         $index++;
     }
 
-    return $match;
+    return $self->_build_match($path, $params);
 }
 
 sub uri_for {
@@ -116,6 +118,16 @@ sub _validate {
     return $input eq $expected;
 }
 
+sub _build_match {
+    my ($self, $path, $params) = @_;
+
+    return HTTP::Router::Match->new(
+        path   => $path,
+        params => $params,
+        route  => $self,
+    );
+}
+
 sub _uri_for_match {
     my ($self, $path, $key, $value) = @_;
 
@@ -136,7 +148,7 @@ HTTP::Router::Route
 
 =head1 METHODS
 
-=head2 match($req)
+=head2 match($path, $conditions)
 
 =head2 uri_for($args)
 

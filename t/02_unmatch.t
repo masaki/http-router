@@ -27,6 +27,12 @@ __END__
 --- path: /account/login
 --- conditions: { method => 'PUT' }
 
+=== GET /archives/{year} (invalid requirements)
+--- path: /archives/20000
+
+=== GET /archives/{year}/{month} (invalid requirements)
+--- path: /archives/2008/december
+
 === GET /articles/ (trailer slash)
 --- path: /articles/
 --- conditions: { method => 'GET' }
