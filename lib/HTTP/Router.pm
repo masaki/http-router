@@ -5,6 +5,8 @@ use Moose;
 use MooseX::AttributeHelpers;
 use HTTP::Router::Route;
 
+our $VERSION = '0.01';
+
 has 'routes' => (
     metaclass  => 'Collection::Array',
     is         => 'rw',
@@ -20,8 +22,6 @@ around 'connect' => sub {
     my ($orig, $self, $path, $args) = @_;
     $orig->($self, $self->_build_route($path, $args));
 };
-
-our $VERSION = '0.01';
 
 sub _build_route {
     my ($self, $path, $args) = @_;
@@ -39,28 +39,16 @@ sub _build_route {
 }
 
 sub match {
-    my ($self, $path, $args) = @_;
+    my ($self, $path, $conditions) = @_;
 
-    my $conditions = $args || {};
+    my @match = ();
     for my $route ($self->routes) {
         if (my $match = $route->match($path, $conditions)) {
-            return $match;
+            push @match, $match;
         }
     }
 
-    return;
-}
-
-sub uri_for {
-    my ($self, @args) = @_;
-
-    for my $route ($self->routes) {
-        if (my $uri = $route->uri_for(@args)) {
-            return $uri;
-        }
-    }
-
-    return;
+    return wantarray ? @match : shift(@match);
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -79,21 +67,12 @@ HTTP::Router - Yet Another HTTP Dispatcher
 
   my $router = HTTP::Router->new;
 
-  $router->connect('/' => {
-      controller => 'Root',
-      action     => 'index',
-  });
+  $router->connect('/' => { controller => 'Root', action => 'index' });
 
   $router->connect('/archives/{year}/{month}' => {
       controller   => 'Archive',
       action       => 'by_month',
       requirements => { year => qr/\d{4}/, month => qr/\d{2}/ },
-  });
-
-  $router->connect('/users/{username}' => {
-      controller   => 'User',
-      action       => 'show',
-      requirements => { username => 'masaki' },
   });
 
   $router->connect('/account/login' => {
@@ -112,26 +91,30 @@ HTTP::Router - Yet Another HTTP Dispatcher
       action     => 'update',
       conditions => { method => 'PUT' },
   });
-  $router->connect('/articles/{article_id}' => {
-      controller => 'Article',
-      action     => 'destroy',
-      conditions => { method => 'DELETE' },
-  });
 
-  if ( my $match = $router->match('/') ){
-      print $match->path; # '/'
+  my $match = $router->match('/');
+  $match->path;   # '/'
+  $match->params; # { controller => 'Root', action => 'index' }
 
-      print $match->params->{controller}; # 'Root'
-      print $match->params->{action};     # 'index'
-  }
+  $match = $router->match('/archives/2008/12');
+  # $match->params:
+  # {
+  #     controller => 'Archive',
+  #     action     => 'by_month',
+  #     year       => '2008',
+  #     month      => '12',
+  # }
 
-  if ( my $match = $router->match('/articles/14', { method => 'PUT' }) ){
-      print $match->path; # '/articles/14'
+  my @match = $router->match('/articles/14');
+  print scalar(@match); # 2
 
-      print $match->params->{controller}; # 'Article'
-      print $match->params->{action};     # 'update'
-      print $match->params->{article_id}; # '14'
-  }
+  $match = $router->match('/articles/14', { method => 'PUT' }) ){
+  # $match->params:
+  # {
+  #     controller => 'Article',
+  #     action     => 'update',
+  #     article_id => '14',
+  # }
 
 =head1 DESCRIPTION
 
@@ -141,11 +124,9 @@ HTTP::Router is HTTP Dispatcher
 
 =head2 new
 
-=head2 connect($path, $args)
+=head2 connect($path [, $args])
 
-=head2 match($path, $conditions)
-
-=head2 uri_for($args)
+=head2 match($path [, $conditions])
 
 =head1 AUTHOR
 

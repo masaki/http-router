@@ -61,25 +61,37 @@ has 'captures' => (
     auto_deref => 1,
 );
 
+sub _build_match {
+    my ($self, $path, $params) = @_;
+
+    return HTTP::Router::Match->new(
+        path   => $path,
+        params => $params,
+        route  => $self,
+    );
+}
+
 sub match {
     my ($self, $path, $conditions) = @_;
-
-    # check conditions
-    for my $name ($self->condition_names) {
-        my $input = $conditions->{$name};
-        return unless defined $input; # missing
-        return unless $self->_validate($input, $self->condition($name));
-    }
 
     # check path
     $path = "/$path" unless $path =~ m!^/!;
     return unless $path =~ $self->pattern;
 
-    # from HTTPx::Dispatcher
+    # save capture args - from HTTPx::Dispatcher
     my @start = @-;
     my @end   = @+;
-    my $index = 1;
 
+    if (defined $conditions) {
+        # check conditions
+        for my $name ($self->condition_names) {
+            my $input = $conditions->{$name};
+            return unless defined $input; # missing
+            return unless $self->_validate($input, $self->condition($name));
+        }
+    }
+
+    my $index  = 1;
     my $params = dclone $self->params;
     for my $key ($self->captures) {
         my $start = $start[$index];
@@ -116,16 +128,6 @@ sub _validate {
     return $input =~ $expected              if ref $expected eq 'Regexp';
     return true { $input eq $_ } @$expected if ref $expected eq 'ARRAY';
     return $input eq $expected;
-}
-
-sub _build_match {
-    my ($self, $path, $params) = @_;
-
-    return HTTP::Router::Match->new(
-        path   => $path,
-        params => $params,
-        route  => $self,
-    );
 }
 
 sub _uri_for_match {
