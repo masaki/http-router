@@ -1,15 +1,22 @@
 package HTTP::Router::Route;
 
 use Moose;
+use Moose::Util::TypeConstraints;
 use MooseX::AttributeHelpers;
 use List::MoreUtils qw(true);
 use Storable qw(dclone);
+use URI::Template;
 use HTTP::Router::Match;
+
+class_type 'URI::Template';
+
+coerce 'URI::Template' => from 'Str' => via { URI::Template->new($_) };
 
 has 'path' => (
     is       => 'rw',
-    isa      => 'Str',
+    isa      => 'URI::Template',
     required => 1,
+    coerce   => 1,
     trigger  => sub {
         my ($self, $path) = @_;
 
@@ -19,6 +26,16 @@ has 'path' => (
 
         $self->pattern(qr{^$pattern$});
         $self->captures(\@captures);
+    },
+);
+
+has 'path_segments' => (
+    metaclass  => 'Collection::Array',
+    is         => 'rw',
+    isa        => 'ArrayRef',
+    auto_deref => 1,
+    provides   => {
+        count => 'path_size',
     },
 );
 
