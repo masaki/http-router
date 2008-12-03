@@ -20,6 +20,8 @@ has 'path' => (
     trigger  => sub {
         my ($self, $path) = @_;
 
+        $self->path_segments([ split m!/! => $path->as_string ]);
+
         # emulate named capture
         my @captures;
         (my $pattern = $path) =~ s!{(\w+)}!push @captures, $1; '([^/]+)'!ge;
@@ -129,14 +131,7 @@ sub match {
 
 sub uri_for {
     my ($self, $args) = @_;
-
-    my $path = $self->path;
-    while (my ($key, $value) = each %{ $args || {} }) {
-         $path = $self->_uri_for_match($path, $key, $value);
-         return unless defined $path;
-    }
-
-    return $path;
+    return $self->path->process_to_string($args || {});
 }
 
 sub _validate {
@@ -145,14 +140,6 @@ sub _validate {
     return $input =~ $expected              if ref $expected eq 'Regexp';
     return true { $input eq $_ } @$expected if ref $expected eq 'ARRAY';
     return $input eq $expected;
-}
-
-sub _uri_for_match {
-    my ($self, $path, $key, $value) = @_;
-
-    return $path if exists $self->params->{$key} and $self->params->{$key} eq $value;
-    return $path if $path =~ s/{$key}/$value/;
-    return;
 }
 
 __PACKAGE__->meta->make_immutable;
