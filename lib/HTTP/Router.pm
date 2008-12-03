@@ -14,28 +14,24 @@ has 'routes' => (
     auto_deref => 1,
     default    => sub { [] },
     provides   => {
-        push => 'connect',
+        push => 'add_route',
     },
 );
 
-around 'connect' => sub {
-    my ($orig, $self, $path, $args) = @_;
-    $orig->($self, $self->_build_route($path, $args));
-};
-
-sub _build_route {
+sub connect {
     my ($self, $path, $args) = @_;
 
     $args ||= {};
     my $conditions   = delete $args->{conditions}   || {};
     my $requirements = delete $args->{requirements} || {};
 
-    return HTTP::Router::Route->new(
+    my $route = HTTP::Router::Route->new(
         path         => $path,
         params       => $args,
         conditions   => $conditions,
         requirements => $requirements,
     );
+    $self->add_route($route);
 }
 
 sub match {
