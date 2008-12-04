@@ -37,13 +37,16 @@ sub connect {
 sub match {
     my ($self, $path, $conditions) = @_;
 
-    my @match = ();
-    for my $route ($self->routes) {
-        if (my $match = $route->match($path, $conditions)) {
-            push @match, $match;
-        }
+    my @slashes = ($path =~ m!/!g);
+    my $slashes = scalar @slashes;
+    my @routes  = grep { $_->slashes eq $slashes } $self->routes;
+
+    my @match = grep { defined } map { $_->match($path, $conditions) } @routes;
+    if (@match) {
+        return wantarray ? @match : shift(@match);
     }
 
+    @match = grep { defined } map { $_->match_with_expansions($path, $conditions) } @routes;
     return wantarray ? @match : shift(@match);
 }
 

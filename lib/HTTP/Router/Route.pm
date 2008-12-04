@@ -3,7 +3,7 @@ package HTTP::Router::Route;
 use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::AttributeHelpers;
-use List::MoreUtils qw(true);
+use List::MoreUtils qw(all true);
 use Storable qw(dclone);
 use URI::Template;
 use HTTP::Router::Match;
@@ -19,26 +19,15 @@ has 'path' => (
     coerce   => 1,
     trigger  => sub {
         my ($self, $path) = @_;
-
-        $self->path_segments([ split m!/! => $path->as_string ]);
-
-        # emulate named capture
-        my @captures;
-        (my $pattern = $path) =~ s!{(\w+)}!push @captures, $1; '([^/]+)'!ge;
-
-        $self->pattern(qr{^$pattern$});
-        $self->captures(\@captures);
+        my @slashes = ($path->as_string =~ m!/!g);
+        $self->slashes(scalar @slashes);
     },
 );
 
-has 'path_segments' => (
-    metaclass  => 'Collection::Array',
-    is         => 'rw',
-    isa        => 'ArrayRef',
-    auto_deref => 1,
-    provides   => {
-        count => 'path_size',
-    },
+has 'slashes' => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0,
 );
 
 has 'params' => (
@@ -69,16 +58,43 @@ has 'requirements' => (
     },
 );
 
-has 'pattern' => (
-    is  => 'rw',
-    isa => 'RegexpRef',
-);
+sub match {
+    my ($self, $path, $conditions) = @_;
 
-has 'captures' => (
-    is         => 'rw',
-    isa        => 'ArrayRef[Str]',
-    auto_deref => 1,
-);
+    # check path
+    return unless $path eq $self->path->as_string;
+    # check conditions
+    return unless $self->_check_conditions($conditions);
+
+    return $self->_build_match($path, dclone $self->params);
+}
+
+sub match_with_expansions {
+    my ($self, $path, $conditions) = @_;
+
+    # check path
+    my %captures = $self->path->deparse($path);
+    return unless all { defined } values %captures;
+
+    # check requirements
+    my $params = dclone $self->params;
+    while (my ($key, $value) = each %captures) {
+        if ($self->has_requirement($key)) {
+            return unless $self->_validate($value, $self->requirement($key));
+        }
+        $params->{$key} = $value;
+    }
+
+    # check conditions
+    return unless $self->_check_conditions($conditions);
+
+    return $self->_build_match($path, $params);
+}
+
+sub uri_for {
+    my ($self, $args) = @_;
+    return $self->path->process_to_string($args || {});
+}
 
 sub _build_match {
     my ($self, $path, $params) = @_;
@@ -90,48 +106,19 @@ sub _build_match {
     );
 }
 
-sub match {
-    my ($self, $path, $conditions) = @_;
+sub _check_conditions {
+    my ($self, $conditions) = @_;
 
-    # check path
-    $path = "/$path" unless $path =~ m!^/!;
-    return unless $path =~ $self->pattern;
+    return 1 unless defined $conditions;
 
-    # save capture args - from HTTPx::Dispatcher
-    my @start = @-;
-    my @end   = @+;
-
-    if (defined $conditions) {
-        # check conditions
-        for my $name ($self->condition_names) {
-            my $input = $conditions->{$name};
-            return unless defined $input; # missing
-            return unless $self->_validate($input, $self->condition($name));
-        }
+    # check conditions
+    for my $name ($self->condition_names) {
+        my $input = $conditions->{$name};
+        return unless defined $input; # missing
+        return unless $self->_validate($input, $self->condition($name));
     }
 
-    my $index  = 1;
-    my $params = dclone $self->params;
-    for my $key ($self->captures) {
-        my $start = $start[$index];
-        my $end   = $end[$index] - $start[$index];
-        my $value = substr $path, $start, $end;
-
-        # check requirements
-        if ($self->has_requirement($key)) {
-            return unless $self->_validate($value, $self->requirement($key));
-        }
-
-        $params->{$key} = $value;
-        $index++;
-    }
-
-    return $self->_build_match($path, $params);
-}
-
-sub uri_for {
-    my ($self, $args) = @_;
-    return $self->path->process_to_string($args || {});
+    return 1;
 }
 
 sub _validate {
