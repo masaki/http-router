@@ -86,7 +86,7 @@ sub match_with_expansions {
 
 sub uri_for {
     my ($self, $args) = @_;
-    return $self->path->process_to_string($args || {});
+    return $self->path->process_to_string(%{ $args || {} });
 }
 
 sub _build_match {

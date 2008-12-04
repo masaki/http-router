@@ -50,6 +50,19 @@ sub match {
     return wantarray ? @match : shift(@match);
 }
 
+sub uri_for {
+    my ($self, $args) = @_;
+
+    $args ||= {};
+    for my $route ($self->routes) {
+        if (my $path = $route->uri_for($args)) {
+            return $path;
+        }
+    }
+
+    return;
+}
+
 __PACKAGE__->meta->make_immutable;
 
 no Moose;
@@ -126,6 +139,8 @@ HTTP::Router is HTTP Dispatcher
 =head2 connect($path [, $args])
 
 =head2 match($path [, $conditions])
+
+=head2 uri_for($args)
 
 =head1 AUTHOR
 
