@@ -19,6 +19,7 @@ has 'route' => (
     is       => 'rw',
     isa      => 'HTTP::Router::Route',
     required => 1,
+    handles  => ['uri_for'],
 );
 
 __PACKAGE__->meta->make_immutable;
@@ -27,11 +28,17 @@ no Moose;
 
 1;
 
+=for stopwords params
+
 =head1 NAME
 
 HTTP::Router::Match
 
 =head1 METHODS
+
+=head2 uri_for
+
+=head1 PROPERTIES
 
 =head2 path
 
@@ -50,6 +57,6 @@ it under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-L<HTTP::Router>
+L<HTTP::Router>, L<HTTP::Router::Route>
 
 =cut

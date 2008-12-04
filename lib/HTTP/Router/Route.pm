@@ -5,7 +5,7 @@ use Moose::Util::TypeConstraints;
 use MooseX::AttributeHelpers;
 use List::MoreUtils qw(all true);
 use Storable qw(dclone);
-use URI::Template;
+use URI::Template 0.13;
 use HTTP::Router::Match;
 
 class_type 'URI::Template';
@@ -17,17 +17,6 @@ has 'path' => (
     isa      => 'URI::Template',
     required => 1,
     coerce   => 1,
-    trigger  => sub {
-        my ($self, $path) = @_;
-        my @slashes = ($path->as_string =~ m!/!g);
-        $self->slashes(scalar @slashes);
-    },
-);
-
-has 'slashes' => (
-    is      => 'rw',
-    isa     => 'Int',
-    default => 0,
 );
 
 has 'params' => (
@@ -57,6 +46,10 @@ has 'requirements' => (
         exists => 'has_requirement',
     },
 );
+
+sub slashes {
+    return scalar @{[ shift->path->as_string =~ m!/!g ]};
+}
 
 sub match {
     my ($self, $path, $conditions) = @_;
@@ -135,6 +128,8 @@ no Moose;
 
 1;
 
+=for stopwords params
+
 =head1 NAME
 
 HTTP::Router::Route
@@ -143,7 +138,21 @@ HTTP::Router::Route
 
 =head2 match($path, $conditions)
 
+=head2 match_with_expansions($path, $conditions)
+
 =head2 uri_for($args)
+
+=head1 PROPERTIES
+
+=head2 path
+
+=head2 slashes
+
+=head2 params
+
+=head2 conditions
+
+=head2 requirements
 
 =head1 AUTHOR
 
