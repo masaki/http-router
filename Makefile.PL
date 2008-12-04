@@ -3,9 +3,11 @@ name 'HTTP-Router';
 all_from 'lib/HTTP/Router.pm';
 
 requires 'Moose';
+requires 'Moose::Util::TypeConstraints';
 requires 'MooseX::AttributeHelpers';
 requires 'List::MoreUtils';
 requires 'Storable';
+requires 'URI::Template' => 0.13;
 
 tests 't/*.t';
 test_requires 'Test::More';
