@@ -36,7 +36,7 @@ HTTP::Router::Match
 
 =head1 METHODS
 
-=head2 uri_for
+=head2 uri_for($args)
 
 =head1 PROPERTIES
 

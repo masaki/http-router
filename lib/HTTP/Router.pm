@@ -120,7 +120,7 @@ HTTP::Router - Yet Another HTTP Dispatcher
   my @match = $router->match('/articles/14');
   print scalar(@match); # 2
 
-  $match = $router->match('/articles/14', { method => 'PUT' }) ){
+  $match = $router->match('/articles/14', { method => 'PUT' })
   # $match->params:
   # {
   #     controller => 'Article',
@@ -128,9 +128,20 @@ HTTP::Router - Yet Another HTTP Dispatcher
   #     article_id => '14',
   # }
 
+  my $path = $router->uri_for({ controller => 'Root', action => 'index' });
+  print $path; # /
+
+  $path = $router->uri_for({
+      controller => 'Archive',
+      action     => 'by_month',
+      year       => '2009',
+      month      => '01',
+  });
+  print $path; # /archives/2009/01
+
 =head1 DESCRIPTION
 
-HTTP::Router is HTTP Dispatcher
+HTTP::Router is HTTP Dispatcher.
 
 =head1 METHODS
 
