@@ -4,6 +4,7 @@ use 5.8.1;
 use Moose;
 use MooseX::AttributeHelpers;
 use HTTP::Router::Route;
+use HTTP::Router::Debug;
 
 our $VERSION = '0.01';
 
@@ -61,6 +62,11 @@ sub uri_for {
     }
 
     return;
+}
+
+sub show_table {
+    my $self = shift;
+    HTTP::Router::Debug->show_table($self->routes);
 }
 
 __PACKAGE__->meta->make_immutable;

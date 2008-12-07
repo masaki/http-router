@@ -8,6 +8,7 @@ requires 'MooseX::AttributeHelpers';
 requires 'List::MoreUtils';
 requires 'Storable';
 requires 'URI::Template' => 0.13;
+requires 'Text::SimpleTable';
 
 tests 't/*.t';
 test_requires 'Test::More';
