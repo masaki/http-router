@@ -1,6 +1,5 @@
 package HTTP::Router::Builder::Connect;
 use Moose;
-use String::CamelCase qw(camelize);
 extends 'HTTP::Router::Builder::Base';
 
 sub build {
