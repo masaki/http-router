@@ -26,25 +26,15 @@ has 'params' => (
 );
 
 has 'conditions' => (
-    metaclass => 'Collection::Hash',
-    is        => 'rw',
-    isa       => 'HashRef[ Str | RegexpRef | ArrayRef ]',
-    default   => sub { +{} },
-    provides  => {
-        get  => 'condition',
-        keys => 'condition_names',
-    },
+    is      => 'rw',
+    isa     => 'HashRef[ Str | RegexpRef | ArrayRef ]',
+    default => sub { +{} },
 );
 
 has 'requirements' => (
-    metaclass => 'Collection::Hash',
-    is        => 'rw',
-    isa       => 'HashRef[ Str | RegexpRef | ArrayRef ]',
-    default   => sub { +{} },
-    provides  => {
-        get    => 'requirement',
-        exists => 'has_requirement',
-    },
+    is      => 'rw',
+    isa     => 'HashRef[ Str | RegexpRef | ArrayRef ]',
+    default => sub { +{} },
 );
 
 sub slashes {
@@ -54,6 +44,8 @@ sub slashes {
 sub match {
     my ($self, $path, $conditions) = @_;
 
+    # check slashes
+    return unless $self->_check_slashes($path);
     # check path
     return unless $path eq $self->path->as_string;
     # check conditions
@@ -65,6 +57,8 @@ sub match {
 sub match_with_expansions {
     my ($self, $path, $conditions) = @_;
 
+    # check slashes
+    return unless $self->_check_slashes($path);
     # check path
     my %captures = $self->path->deparse($path);
     return unless all { defined } values %captures;
@@ -72,8 +66,8 @@ sub match_with_expansions {
     # check requirements
     my $params = dclone $self->params;
     while (my ($key, $value) = each %captures) {
-        if ($self->has_requirement($key)) {
-            return unless $self->_validate($value, $self->requirement($key));
+        if (defined(my $required = $self->requirements->{$key})) {
+            return unless $self->_validate($value, $required);
         }
         $params->{$key} = $value;
     }
@@ -99,16 +93,24 @@ sub _build_match {
     );
 }
 
+sub _check_slashes {
+    my ($self, $path) = @_;
+    return scalar @{[ $path =~ m!/!g ]} == $self->slashes;
+}
+
 sub _check_conditions {
     my ($self, $conditions) = @_;
 
-    return 1 unless defined $conditions;
+    # not exists
+    return 1 unless my @keys = keys %{ $self->conditions };
+    # not supplied
+    return unless defined $conditions;
 
-    # check conditions
-    for my $name ($self->condition_names) {
-        my $input = $conditions->{$name};
+    # check
+    for my $key (@keys) {
+        my $input = $conditions->{$key};
         return unless defined $input; # missing
-        return unless $self->_validate($input, $self->condition($name));
+        return unless $self->_validate($input, $self->conditions->{$key});
     }
 
     return 1;
