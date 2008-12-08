@@ -62,25 +62,27 @@ sub match_with_expansions {
     # check path
     my %captures = $self->path->deparse($path);
     return unless all { defined } values %captures;
-
     # check requirements
-    my $params = dclone $self->params;
-    while (my ($key, $value) = each %captures) {
-        if (defined(my $required = $self->requirements->{$key})) {
-            return unless $self->_validate($value, $required);
-        }
-        $params->{$key} = $value;
-    }
-
+    return unless $self->_check_requirements(\%captures);
     # check conditions
     return unless $self->_check_conditions($conditions);
+
+    my $params = dclone $self->params;
+    $params = { %$params, %captures };
 
     return $self->_build_match($path, $params);
 }
 
 sub uri_for {
     my ($self, $args) = @_;
-    return $self->path->process_to_string(%{ $args || {} });
+
+    my $params = $args || {};
+
+    if ($self->path->variables > 0) {
+        return unless $self->_check_requirements($params);
+    }
+
+    return $self->path->process_to_string(%$params);
 }
 
 sub _build_match {
@@ -98,19 +100,35 @@ sub _check_slashes {
     return scalar @{[ $path =~ m!/!g ]} == $self->slashes;
 }
 
+sub _check_requirements {
+    my ($self, $args) = @_;
+
+    # not exists
+    return 1 unless keys %{ $self->requirements } > 0;
+    # not supplied
+    return unless defined $args and keys %$args > 0;
+
+    # check
+    while (my ($key, $value) = each %$args) {
+        next unless exists $self->requirements->{$key};
+        return unless $self->_validate($value, $self->requirements->{$key});
+    }
+
+    return 1;
+}
+
 sub _check_conditions {
-    my ($self, $conditions) = @_;
+    my ($self, $args) = @_;
 
     # not exists
     return 1 unless my @keys = keys %{ $self->conditions };
     # not supplied
-    return unless defined $conditions;
+    return unless defined $args and keys %$args > 0;
 
     # check
     for my $key (@keys) {
-        my $input = $conditions->{$key};
-        return unless defined $input; # missing
-        return unless $self->_validate($input, $self->conditions->{$key});
+        return unless exists $args->{$key};
+        return unless $self->_validate($args->{$key}, $self->conditions->{$key});
     }
 
     return 1;
