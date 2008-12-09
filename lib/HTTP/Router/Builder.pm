@@ -15,7 +15,7 @@ has 'connect_builder' => (
 has 'resource_builder' => (
     is      => 'rw',
     default => sub {
-        HTTP::Router::Builder::Resource->new;
+        HTTP::Router::Builder::SingletonResource->new;
     },
     handles => { 'build_resource' => 'build', }
 );
@@ -23,7 +23,7 @@ has 'resource_builder' => (
 has 'resources_builder' => (
     is      => 'rw',
     default => sub {
-        HTTP::Router::Builder::Resource->new;
+        HTTP::Router::Builder::Resources->new;
     },
     handles => { 'build_resources' => 'build', }
 );
