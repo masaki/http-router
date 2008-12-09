@@ -5,22 +5,25 @@ extends 'HTTP::Router::Builder::Base';
 
 sub build {
     my ( $self, $controller, $opts ) = @_;
+
     my $routes = [];
+    push @{$routes}, @{ $self->_build_index_route($controller) };
+    push @{$routes}, @{ $self->_build_create_route($controller) };
+    push @{$routes}, @{ $self->_build_new_route($controller) };
+    push @{$routes}, @{ $self->_build_edit_route($controller) };
+    push @{$routes}, @{ $self->_build_show_route($controller) };
+    push @{$routes}, @{ $self->_build_update_route($controller) };
+    push @{$routes}, @{ $self->_build_destroy_route($controller) };
 
-    push @{$routes}, $self->_build_index_route($controller);
-    push @{$routes}, $self->_build_create_route($controller);
-    push @{$routes}, $self->_build_new_route($controller);
-    push @{$routes}, $self->_build_edit_route($controller);
-    push @{$routes}, $self->_build_show_route($controller);
-    push @{$routes}, $self->_build_update_route($controller);
-    push @{$routes}, $self->_build_destroy_route($controller);
-
-    if ($opts->{collection}) {
-        push @{$routes}, $self->_build_collection_route($controller, $opts->{collection});
+    if ( $opts->{collection} ) {
+        push @{$routes},
+            $self->_build_collection_route( $controller,
+            $opts->{collection} );
     }
-    
-    if ($opts->{member}) {
-        push @{$routes}, $self->_build_member_route($controller, $opts->{collection});
+
+    if ( $opts->{member} ) {
+        push @{$routes},
+            $self->_build_member_route( $controller, $opts->{collection} );
     }
     wantarray ? @{$routes} : $routes;
 }
@@ -56,7 +59,7 @@ sub _build_index_route {
     $args->{controller} = camelize($controller);
     $args->{action}     = 'index';
     $args->{conditions} = { method => ['GET'] };
-    $self->build_route( $path => $args );
+    $self->build_routes( $path => $args );
 }
 
 sub _build_create_route {
@@ -66,7 +69,7 @@ sub _build_create_route {
     $args->{controller} = camelize($controller);
     $args->{action}     = 'create';
     $args->{conditions} = { method => ['POST'] };
-    $self->build_route( $path => $args );
+    $self->build_routes( $path => $args );
 }
 
 sub _build_new_route {
@@ -76,7 +79,7 @@ sub _build_new_route {
     $args->{controller} = camelize($controller);
     $args->{action}     = 'new';
     $args->{conditions} = { method => ['POST'] };
-    $self->build_route( $path => $args );
+    $self->build_routes( $path => $args );
 }
 
 sub _build_edit_route {
@@ -86,7 +89,7 @@ sub _build_edit_route {
     $args->{controller} = camelize($controller);
     $args->{action}     = 'edit';
     $args->{conditions} = { method => ['GET'] };
-    $self->build_route( $path => $args );
+    $self->build_routes( $path => $args );
 }
 
 sub _build_show_route {
@@ -96,7 +99,7 @@ sub _build_show_route {
     $args->{controller} = camelize($controller);
     $args->{action}     = 'show';
     $args->{conditions} = { method => ['GET'] };
-    $self->build_route( $path => $args );
+    $self->build_routes( $path => $args );
 }
 
 sub _build_update_route {
@@ -106,7 +109,7 @@ sub _build_update_route {
     $args->{controller} = camelize($controller);
     $args->{action}     = 'update';
     $args->{conditions} = { method => ['PUT'] };
-    $self->build_route( $path => $args );
+    $self->build_routes( $path => $args );
 }
 
 sub _build_destroy_route {
@@ -116,7 +119,15 @@ sub _build_destroy_route {
     $args->{controller} = camelize($controller);
     $args->{action}     = 'destroy';
     $args->{conditions} = { method => ['DELETE'] };
-    $self->build_route( $path => $args );
+    $self->build_routes( $path => $args );
+}
+
+sub build_routes {
+    my ( $self, $path, $args ) = @_;
+    my $routes = [];
+    push @{$routes}, $self->build_route_with_format( $path, => $args );
+    push @{$routes}, $self->build_route( $path => $args );
+    $routes;
 }
 
 __PACKAGE__->meta->make_immutable;
