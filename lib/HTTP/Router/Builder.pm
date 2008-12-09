@@ -1,7 +1,8 @@
 package HTTP::Router::Builder;
 use Moose;
 use HTTP::Router::Builder::Connect;
-use HTTP::Router::Builder::Resource;
+use HTTP::Router::Builder::SingletonResource;
+use HTTP::Router::Builder::Resources;
 
 has 'connect_builder' => (
     is      => 'rw',
@@ -17,6 +18,14 @@ has 'resource_builder' => (
         HTTP::Router::Builder::Resource->new;
     },
     handles => { 'build_resource' => 'build', }
+);
+
+has 'resources_builder' => (
+    is      => 'rw',
+    default => sub {
+        HTTP::Router::Builder::Resource->new;
+    },
+    handles => { 'build_resources' => 'build', }
 );
 
 no Moose;

@@ -1,4 +1,4 @@
-package HTTP::Router::Builder::Resource;
+package HTTP::Router::Builder::SingletonResource;
 use Moose;
 use String::CamelCase qw(camelize);
 extends 'HTTP::Router::Builder::Base';
@@ -25,34 +25,6 @@ sub build {
             $self->_build_member_route( $controller, $opts->{collection} );
     }
     wantarray ? @{$routes} : $routes;
-}
-
-sub _build_collection_route {
-    my ( $self, $controller, $collection ) = @_;
-    my $routes = [];
-    foreach my $action ( keys %{$collection} ) {
-        my $path = '/' . $controller . '/' . $action;
-        my $args = {};
-        $args->{controller} = camelize($controller);
-        $args->{action}     = $action;
-        $args->{conditions} = { method => [ $collection->{$action} ] };
-        push @{$routes}, @{ $self->build_routes( $path => $args ) };
-    }
-    $routes;
-}
-
-sub _build_member_route {
-    my ( $self, $controller, $member ) = @_;
-    my $routes = [];
-    foreach my $action ( keys %{$member} ) {
-        my $path = '/' . $controller . '/{id}/' . $action;
-        my $args = {};
-        $args->{controller} = camelize($controller);
-        $args->{action}     = $action;
-        $args->{conditions} = { method => [ $member->{$action} ] };
-        push @{$routes}, @{ $self->build_routes( $path => $args ) };
-    }
-    $routes;
 }
 
 sub _build_create_route {
