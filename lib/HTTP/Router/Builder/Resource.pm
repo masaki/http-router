@@ -7,7 +7,6 @@ sub build {
     my ( $self, $controller, $opts ) = @_;
 
     my $routes = [];
-    push @{$routes}, @{ $self->_build_index_route($controller) };
     push @{$routes}, @{ $self->_build_create_route($controller) };
     push @{$routes}, @{ $self->_build_new_route($controller) };
     push @{$routes}, @{ $self->_build_edit_route($controller) };
@@ -54,16 +53,6 @@ sub _build_member_route {
         push @{$routes}, @{ $self->build_routes( $path => $args ) };
     }
     $routes;
-}
-
-sub _build_index_route {
-    my ( $self, $controller ) = @_;
-    my $path = '/' . $controller;
-    my $args = {};
-    $args->{controller} = camelize($controller);
-    $args->{action}     = 'index';
-    $args->{conditions} = { method => ['GET'] };
-    $self->build_routes( $path => $args );
 }
 
 sub _build_create_route {
