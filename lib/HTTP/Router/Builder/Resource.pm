@@ -4,8 +4,9 @@ use String::CamelCase qw(camelize);
 extends 'HTTP::Router::Builder::Base';
 
 sub build {
-    my ( $self, $controller ) = @_;
+    my ( $self, $controller, $opts ) = @_;
     my $routes = [];
+
     push @{$routes}, $self->_build_index_route($controller);
     push @{$routes}, $self->_build_create_route($controller);
     push @{$routes}, $self->_build_new_route($controller);
@@ -13,7 +14,39 @@ sub build {
     push @{$routes}, $self->_build_show_route($controller);
     push @{$routes}, $self->_build_update_route($controller);
     push @{$routes}, $self->_build_destroy_route($controller);
+
+    if ($opts->{collection}) {
+        push @{$routes}, $self->_build_collection_route($controller, $opts->{collection});
+    }
+    
+    if ($opts->{member}) {
+        push @{$routes}, $self->_build_member_route($controller, $opts->{collection});
+    }
     wantarray ? @{$routes} : $routes;
+}
+
+sub _build_collection_route {
+    my ( $self, $controller, $collection ) = @_;
+    foreach my $action ( keys %{$collection} ) {
+        my $path = '/' . $controller . '/' . $action;
+        my $args = {};
+        $args->{controller} = camelize($controller);
+        $args->{action}     = $action;
+        $args->{conditions} = { method => [ $collection->{$action} ] };
+        $self->build_route( $path => $args );
+    }
+}
+
+sub _build_member_route {
+    my ( $self, $controller, $member ) = @_;
+    foreach my $action ( keys %{$member} ) {
+        my $path = '/' . $controller . '/{id}/' . $action;
+        my $args = {};
+        $args->{controller} = camelize($controller);
+        $args->{action}     = $action;
+        $args->{conditions} = { method => [ $member->{$action} ] };
+        $self->build_route( $path => $args );
+    }
 }
 
 sub _build_index_route {
