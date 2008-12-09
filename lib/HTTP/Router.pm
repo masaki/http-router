@@ -165,6 +165,7 @@ HTTP::Router is HTTP Dispatcher.
 =head1 AUTHOR
 
 NAKAGAWA Masaki E<lt>masaki@cpan.orgE<gt>
+Takatoshi KitanoE<lt>kitano.tk@gmail.comE<gt>
 
 =head1 LICENSE
 
