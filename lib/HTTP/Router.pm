@@ -5,8 +5,7 @@ use Moose;
 use MooseX::AttributeHelpers;
 use HTTP::Router::Route;
 use HTTP::Router::Debug;
-use HTTP::Router::Builder::Connect;
-use HTTP::Router::Builder::Resource;
+use HTTP::Router::Builder;
 
 our $VERSION = '0.01';
 
@@ -24,14 +23,14 @@ has 'routes' => (
 sub connect {
     my ($self, $path, $args) = @_;
 
-    my $route = HTTP::Router::Builder::Connect->new->build($path, $args);
+    my $route = HTTP::Router::Builder->new->build_connect($path, $args);
     $self->add_route($route);
 }
 
 sub resource {
     my ($self, $controller, $args) = @_;
 
-    my @routes = HTTP::Router::Builder::Resrouce->new->build($controller, $args);
+    my @routes = HTTP::Router::Builder->new->build_resource($controller, $args);
     $self->add_route($_) for @routes;
 }
 
