@@ -15,7 +15,7 @@ run {
     my @actual
         = HTTP::Router::Builder::Resource->new->build( $block->controller);
         #HTTP::Router::Debug->show_table(@actual);
-    my $expected_routes_num = 14;
+    my $expected_routes_num = 12;
     is @actual, $expected_routes_num;
 };
 
