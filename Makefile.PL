@@ -12,6 +12,7 @@ requires 'Text::SimpleTable';
 requires 'Sub::Install';
 requires 'Module::Pluggable::Object';
 requires 'String::CamelCase';
+requires 'UNIVERSAL::require';
 
 tests 't/*.t';
 test_requires 'Test::More';
