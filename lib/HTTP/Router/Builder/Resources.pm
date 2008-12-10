@@ -1,14 +1,39 @@
 package HTTP::Router::Builder::Resources;
 use Moose;
 use Carp ();
-extends 'HTTP::Router::Builder::Base';
+extends 'HTTP::Router::Builder::Resource';
+
+no Moose;
 
 sub build {
-    Carp::croak 'Implement me';
+    my ( $self, $controller, $opts ) = @_;
+    my $routes = [];
+
+    push @{$routes}, @{ $self->build_common_routes( $controller, $opts ) };
+    push @{$routes}, @{ $self->_build_index_route($controller) };
+
+    if ( exists $opts->{collection} ) {
+        push @{$routes},
+            $self->_build_collection_route( $controller,
+            $opts->{collection} );
+    }
+
+    if ( exists $opts->{member} ) {
+        push @{$routes},
+            $self->_build_member_route( $controller, $opts->{collection} );
+    }
+
+    wantarray ? @{$routes} : $routes;
 }
 
 sub _build_index_route {
-    'Implement me!';
+    my ( $self, $controller ) = @_;
+    my $path = '/' . $controller;
+    my $args = {};
+    $args->{controller} = camelize($controller);
+    $args->{action}     = 'index';
+    $args->{conditions} = { method => ['GET'] };
+    $self->build_routes( $path => $args );
 }
 
 sub _build_collection_route {
@@ -39,7 +64,6 @@ sub _build_member_route {
     $routes;
 }
 
-no Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;
