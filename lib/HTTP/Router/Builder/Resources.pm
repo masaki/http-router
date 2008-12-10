@@ -24,8 +24,7 @@ sub build {
 
     if ( exists $opts->{member} ) {
         push @{$routes},
-            @{ $self->_build_member_route( $controller, $opts->{collection} )
-            };
+            @{ $self->_build_member_route( $controller, $opts->{member} ) };
     }
 
     wantarray ? @{$routes} : $routes;

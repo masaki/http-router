@@ -12,9 +12,10 @@ run {
     my $conditions   = $block->conditions || {};
     my $requirements = $block->requirements || {};
     my @actual
-        = HTTP::Router::Builder::Resources->new->build( $block->controller );
+        = HTTP::Router::Builder::Resources->new->build( $block->controller,
+        { collection => $block->collection } );
     #HTTP::Router::Debug->show_table(@actual);
-    my $expected_routes_num = 14;
+    my $expected_routes_num = 16;
     is @actual, $expected_routes_num;
 };
 
@@ -22,4 +23,5 @@ __END__
 
 === /
 --- controller: Root
+--- collection: { sold => 'GET'}
 
