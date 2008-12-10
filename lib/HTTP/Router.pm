@@ -127,7 +127,7 @@ HTTP::Router is HTTP Dispatcher.
 
 =head2 match($path [, $conditions])
 
-=head2 uri_for($args)
+=head2 show_table
 
 =head1 AUTHOR
 
