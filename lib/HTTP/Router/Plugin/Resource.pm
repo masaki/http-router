@@ -24,7 +24,7 @@ __PACKAGE__->meta->make_immutable;
 
 =head1 NAME
 
-HTTP::Router::Plugin::Connect
+HTTP::Router::Plugin::Resource
 
 =head1 METHODS
 

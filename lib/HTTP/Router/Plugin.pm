@@ -38,6 +38,7 @@ sub plugin_name {
 
 __PACKAGE__->meta->make_immutable;
 
+1;
 
 =for stopwords params
 
@@ -65,4 +66,4 @@ it under the same terms as Perl itself.
 
 =cut
 
-1;
+
