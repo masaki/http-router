@@ -5,7 +5,7 @@ use Moose;
 use MooseX::AttributeHelpers;
 use HTTP::Router::Route;
 use HTTP::Router::Debug;
-use HTTP::Router::Builder;
+use HTTP::Router::PluginLoader;
 
 our $VERSION = '0.01';
 
@@ -20,22 +20,9 @@ has 'routes' => (
     },
 );
 
-sub connect {
-    my ($self, $path, $args) = @_;
-
-    my $route = HTTP::Router::Builder->new->build_connect($path, $args);
-    $self->add_route($route);
-}
-
-sub resource {
-    my ($self, $controller, $args) = @_;
-
-    my @routes = HTTP::Router::Builder->new->build_resource($controller, $args);
-    $self->add_route($_) for @routes;
-}
-
-sub resources {
-    Carp::croak 'Implement me';
+# TODO should user select plugins? if so, plugins should be optional.
+sub BUILD {
+    HTTP::Router::PluginLoader->new->load_all_plugins;
 }
 
 sub match {
