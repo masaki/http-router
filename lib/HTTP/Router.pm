@@ -5,6 +5,7 @@ use Moose;
 use MooseX::AttributeHelpers;
 use HTTP::Router::Route;
 use HTTP::Router::PluginLoader;
+use HTTP::Router::Builder::Connect;
 
 our $VERSION = '0.01';
 
@@ -14,36 +15,60 @@ has 'routes' => (
     isa        => 'ArrayRef[HTTP::Router::Route]',
     auto_deref => 1,
     default    => sub { [] },
-    provides   => {
-        push => 'add_route',
-    },
+    provides   => { push => 'add_route', },
 );
 
-# TODO should user select plugins? if so, plugins should be optional.
+has 'plugins' => (
+    metaclass  => 'Collection::Array',
+    is         => 'rw',
+    isa        => 'ArrayRef',
+    auto_deref => 1,
+    default    => sub { [] },
+    provides   => { push => 'add_plugin', },
+);
+
 sub BUILD {
-    HTTP::Router::PluginLoader->new->load_all_plugins;
+    my $self = shift;
+    $self->load_plugins;
+}
+
+sub load_plugins {
+    my $self   = shift;
+    my $loader = HTTP::Router::PluginLoader->new;
+    foreach my $plugin ( $self->plugins ) {
+        $loader->load_plugin($plugin);
+    }
+}
+
+sub connect {
+    my ( $self, $path, $args ) = @_;
+    my $route = HTTP::Router::Builder::Connect->new->build( $path, $args );
+    $self->add_route($route);
 }
 
 sub match {
-    my ($self, $path, $conditions) = @_;
+    my ( $self, $path, $conditions ) = @_;
 
-    my $slashes = scalar @{[ $path =~ m!/!g ]};
-    my @routes  = grep { $_->slashes eq $slashes } $self->routes;
+    my $slashes = scalar @{ [ $path =~ m!/!g ] };
+    my @routes = grep { $_->slashes eq $slashes } $self->routes;
 
     # by path
-    if (my @match = grep { defined } map { $_->match($path, $conditions) } @routes) {
+    if ( my @match
+        = grep {defined} map { $_->match( $path, $conditions ) } @routes )
+    {
         return wantarray ? @match : shift(@match);
     }
 
     # with expansions
-    my @match = grep { defined } map { $_->match_with_expansions($path, $conditions) } @routes;
+    my @match = grep {defined}
+        map { $_->match_with_expansions( $path, $conditions ) } @routes;
     return wantarray ? @match : shift(@match);
 }
 
 sub show_table {
     my $self = shift;
     require HTTP::Router::Debug;
-    HTTP::Router::Debug->show_table($self->routes);
+    HTTP::Router::Debug->show_table( $self->routes );
 }
 
 __PACKAGE__->meta->make_immutable;
