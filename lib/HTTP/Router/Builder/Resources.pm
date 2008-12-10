@@ -1,5 +1,6 @@
 package HTTP::Router::Builder::Resources;
 use Moose;
+use String::CamelCase qw(camelize);
 use Carp ();
 extends 'HTTP::Router::Builder::Resource';
 
@@ -14,13 +15,17 @@ sub build {
 
     if ( exists $opts->{collection} ) {
         push @{$routes},
-            $self->_build_collection_route( $controller,
-            $opts->{collection} );
+            @{
+            $self->_build_collection_route(
+                $controller, $opts->{collection}
+            )
+            };
     }
 
     if ( exists $opts->{member} ) {
         push @{$routes},
-            $self->_build_member_route( $controller, $opts->{collection} );
+            @{ $self->_build_member_route( $controller, $opts->{collection} )
+            };
     }
 
     wantarray ? @{$routes} : $routes;

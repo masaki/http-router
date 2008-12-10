@@ -17,7 +17,6 @@ sub make_builder_sub {
 
 sub _install {
     my ( $self, $builder_sub ) = @_;
-    warn $self->plugin_name;
     Sub::Install::install_sub(
         {   code => $builder_sub,
             into => 'HTTP::Router',

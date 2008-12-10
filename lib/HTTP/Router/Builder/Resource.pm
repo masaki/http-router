@@ -29,7 +29,7 @@ our $ROUTING_TABLE = [
     },
     {   path => sub { my $controller = shift; '/' . $controller . '/{id}'; },
         action     => 'destroy',
-        conditions => { method => ['DELETEJ'] },
+        conditions => { method => ['DELETE'] },
     },
 ];
 
