@@ -4,7 +4,6 @@ use 5.8.1;
 use Moose;
 use MooseX::AttributeHelpers;
 use HTTP::Router::Route;
-use HTTP::Router::Debug;
 use HTTP::Router::PluginLoader;
 
 our $VERSION = '0.01';
@@ -41,21 +40,9 @@ sub match {
     return wantarray ? @match : shift(@match);
 }
 
-sub uri_for {
-    my ($self, $args) = @_;
-
-    $args ||= {};
-    for my $route ($self->routes) {
-        if (my $path = $route->uri_for($args)) {
-            return $path;
-        }
-    }
-
-    return;
-}
-
 sub show_table {
     my $self = shift;
+    require HTTP::Router::Debug;
     HTTP::Router::Debug->show_table($self->routes);
 }
 
@@ -101,8 +88,9 @@ HTTP::Router - Yet Another HTTP Dispatcher
   });
 
   my $match = $router->match('/');
-  $match->path;   # '/'
-  $match->params; # { controller => 'Root', action => 'index' }
+  $match->path;    # '/'
+  $match->params;  # { controller => 'Root', action => 'index' }
+  $match->uri_for; # '/'
 
   $match = $router->match('/archives/2008/12');
   # $match->params:
@@ -112,6 +100,9 @@ HTTP::Router - Yet Another HTTP Dispatcher
   #     year       => '2008',
   #     month      => '12',
   # }
+
+  my $path = $match->uri_for({ year => '2009', month => '01' });
+  print $path; # /archives/2009/01
 
   my @match = $router->match('/articles/14');
   print scalar(@match); # 2
@@ -123,17 +114,6 @@ HTTP::Router - Yet Another HTTP Dispatcher
   #     action     => 'update',
   #     article_id => '14',
   # }
-
-  my $path = $router->uri_for({ controller => 'Root', action => 'index' });
-  print $path; # /
-
-  $path = $router->uri_for({
-      controller => 'Archive',
-      action     => 'by_month',
-      year       => '2009',
-      month      => '01',
-  });
-  print $path; # /archives/2009/01
 
 =head1 DESCRIPTION
 
@@ -152,6 +132,7 @@ HTTP::Router is HTTP Dispatcher.
 =head1 AUTHOR
 
 NAKAGAWA Masaki E<lt>masaki@cpan.orgE<gt>
+
 Takatoshi KitanoE<lt>kitano.tk@gmail.comE<gt>
 
 =head1 LICENSE
