@@ -5,81 +5,33 @@ extends 'HTTP::Router::Builder::Base';
 
 no Moose;
 
-# FIXME refactor with ROUTING TABLE hash
-
-sub build_common_routes {
-    my ( $self, $controller, $opts ) = @_;
-
-    my $routes = [];
-    push @{$routes}, @{ $self->_build_create_route($controller) };
-    push @{$routes}, @{ $self->_build_new_route($controller) };
-    push @{$routes}, @{ $self->_build_edit_route($controller) };
-    push @{$routes}, @{ $self->_build_show_route($controller) };
-    push @{$routes}, @{ $self->_build_update_route($controller) };
-    push @{$routes}, @{ $self->_build_destroy_route($controller) };
-
-    wantarray ? @{$routes} : $routes;
-}
-
-sub _build_create_route {
-    my ( $self, $controller ) = @_;
-    my $path = '/' . $controller;
-    my $args = {};
-    $args->{controller} = camelize($controller);
-    $args->{action}     = 'create';
-    $args->{conditions} = { method => ['POST'] };
-    $self->build_routes( $path => $args );
-}
-
-sub _build_new_route {
-    my ( $self, $controller ) = @_;
-    my $path = '/' . $controller . '/new';
-    my $args = {};
-    $args->{controller} = camelize($controller);
-    $args->{action}     = 'new';
-    $args->{conditions} = { method => ['POST'] };
-    $self->build_routes( $path => $args );
-}
-
-sub _build_edit_route {
-    my ( $self, $controller ) = @_;
-    my $path = '/' . $controller . '/{id}/edit';
-    my $args = {};
-    $args->{controller} = camelize($controller);
-    $args->{action}     = 'edit';
-    $args->{conditions} = { method => ['GET'] };
-    $self->build_routes( $path => $args );
-}
-
-sub _build_show_route {
-    my ( $self, $controller ) = @_;
-    my $path = '/' . $controller . '/{id}';
-    my $args = {};
-    $args->{controller} = camelize($controller);
-    $args->{action}     = 'show';
-    $args->{conditions} = { method => ['GET'] };
-    $self->build_routes( $path => $args );
-}
-
-sub _build_update_route {
-    my ( $self, $controller ) = @_;
-    my $path = '/' . $controller . '/{id}';
-    my $args = {};
-    $args->{controller} = camelize($controller);
-    $args->{action}     = 'update';
-    $args->{conditions} = { method => ['PUT'] };
-    $self->build_routes( $path => $args );
-}
-
-sub _build_destroy_route {
-    my ( $self, $controller ) = @_;
-    my $path = '/' . $controller . '/{id}';
-    my $args = {};
-    $args->{controller} = camelize($controller);
-    $args->{action}     = 'destroy';
-    $args->{conditions} = { method => ['DELETE'] };
-    $self->build_routes( $path => $args );
-}
+our $ROUTING_TABLE = [
+    {   path => sub { my $controller = shift; '/' . $controller; },
+        action     => 'create',
+        conditions => { method => ['POST'] },
+    },
+    {   path => sub { my $controller = shift; '/' . $controller . '/new'; },
+        action     => 'new',
+        conditions => { method => ['POST'] },
+    },
+    {   path =>
+            sub { my $controller = shift; '/' . $controller . '/{id}/edit'; },
+        action     => 'edit',
+        conditions => { method => ['GET'] },
+    },
+    {   path => sub { my $controller = shift; '/' . $controller . '/{id}'; },
+        action     => 'show',
+        conditions => { method => ['GET'] },
+    },
+    {   path => sub { my $controller = shift; '/' . $controller . '/{id}'; },
+        action     => 'update',
+        conditions => { method => ['PUT'] },
+    },
+    {   path => sub { my $controller = shift; '/' . $controller . '/{id}'; },
+        action     => 'destroy',
+        conditions => { method => ['DELETEJ'] },
+    },
+];
 
 sub build_routes {
     my ( $self, $path, $args ) = @_;
@@ -87,6 +39,23 @@ sub build_routes {
     push @{$routes}, $self->build_route_with_format( $path, => $args );
     push @{$routes}, $self->build_route( $path => $args );
     $routes;
+}
+
+sub build_common_routes {
+    my ( $self, $controller, $opts ) = @_;
+
+    my $routes = [];
+    foreach my $routing ( @{$ROUTING_TABLE} ) {
+        my $path = $routing->{path}->($controller);
+        my $args = {};
+        $args->{controller} = camelize($controller);
+        $args->{action}     = $routing->{action};
+        $args->{conditions} = $routing->{conditions};
+
+        push @{$routes}, @{ $self->build_routes( $path => $args ) };
+    }
+
+    wantarray ? @{$routes} : $routes;
 }
 
 __PACKAGE__->meta->make_immutable;
