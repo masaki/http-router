@@ -8,7 +8,7 @@ sub build_route_with_format {
     my $requirements = $args->{requirements} || {};
 
     return HTTP::Router::Route->new(
-        path         => $path . "/{format}",
+        path         => $path . ".{format}",
         params       => $args,
         conditions   => $conditions,
         requirements => $requirements,
