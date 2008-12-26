@@ -1,9 +1,12 @@
 package HTTP::Router::Debug;
+
+use strict;
+use warnings;
 use Text::SimpleTable;
 
 sub show_table {
     my ( $class, @routes ) = @_;
-    $report = $class->_make_table_report(\@routes);
+    my $report = $class->_make_table_report(\@routes);
     print $report . "\n";
 }
 
@@ -29,3 +32,28 @@ sub _make_table_report {
 }
 
 1;
+
+=head1 NAME
+
+HTTP::Router::Debug
+
+=head1 METHODS
+
+=head2 show_table(@routes)
+
+=head1 AUTHOR
+
+Takatoshi Kitano E<lt>kitano.tk@gmail.comE<gt>
+
+NAKAGAWA Masaki E<lt>masaki@cpan.orgE<gt>
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=head1 SEE ALSO
+
+L<HTTP::Router>, L<Text::SimpleTable>
+
+=cut

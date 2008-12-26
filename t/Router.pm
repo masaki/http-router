@@ -1,15 +1,17 @@
 package t::Router;
 
-use Test::Base -Base;
-use HTTP::Router;
+use Exporter 'import';
+use Test::MockObject;
 
-our @EXPORT = qw(build_router);
+our @EXPORT = qw(create_request);
 
-sub build_router () {
-    my $routes = eval { require 't/routes.pl' };
-    my $router = HTTP::Router->new;
-    $router->connect(@$_) for @$routes;
-    $router;
+sub create_request {
+    my $params = shift;
+    my $req = Test::MockObject->new;
+    while (my ($name, $value) = each %$params) {
+        $req->set_always($name, $value);
+    }
+    $req;
 }
 
 1;

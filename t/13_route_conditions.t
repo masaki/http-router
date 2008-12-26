@@ -1,11 +1,12 @@
+use Test::Base;
+use Test::Deep;
 use t::Router;
 use HTTP::Router::Route;
 
-plan tests => 2 * blocks;
+plan tests => 3 * blocks;
 
 filters {
-    conditions => ['eval'],
-    input      => ['eval'],
+    map { $_ => ['eval'] } qw(params conditions request match captures)
 };
 
 run {
@@ -13,20 +14,55 @@ run {
     my $name  = $block->name;
     my $route = HTTP::Router::Route->new(
         path       => $block->path,
+        params     => $block->params,
         conditions => $block->conditions,
     );
 
-    ok $route->match(@{ $block->input }), "ok $name";
-    ok !$route->match($block->path), "undefined conditions $name";
+    my $req = create_request($block->request);
+    my $match = $route->match($req);
+    ok $match, "match ($name)";
+    cmp_deeply $match->params => $block->match, "params ($name)";
+    cmp_deeply $match->captures => $block->captures, "captures ($name)";
 };
 
 __END__
-=== simple condition
---- path: /
+=== scalar conditions
+--- path      : /
+--- params    : { controller => 'Root', action => 'index' }
 --- conditions: { method => 'GET' }
---- input: [ '/', { method => 'GET' } ]
+--- request   : { path => '/', method => 'GET' }
+--- match     : { controller => 'Root', action => 'index' }
+--- captures  : {}
+
 
 === array conditions
---- path: /
+--- path      : /
+--- params    : { controller => 'Root', action => 'index' }
 --- conditions: { method => ['GET', 'POST'] }
---- input: [ '/', { method => 'POST' } ]
+--- request   : { path => '/', method => 'GET' }
+--- match     : { controller => 'Root', action => 'index' }
+--- captures  : {}
+
+=== regexp conditions
+--- path      : /
+--- params    : { controller => 'Root', action => 'index' }
+--- conditions: { method => qr/^(?:GET|POST)$/ }
+--- request   : { path => '/', method => 'GET' }
+--- match     : { controller => 'Root', action => 'index' }
+--- captures  : {}
+
+=== captures
+--- path      : /archives/{year}
+--- params    : { controller => 'Archive', action => 'by_year' }
+--- conditions: { year => qr/^\d{4}$/ }
+--- request   : { path => '/archives/2008' }
+--- match     : { controller => 'Archive', action => 'by_year', year => 2008 }
+--- captures  : { year => 2008 }
+
+=== captures and conditions
+--- path      : /archives/{year}
+--- params    : { controller => 'Archive', action => 'by_year' }
+--- conditions: { method => 'GET', year => qr/^\d{4}$/ }
+--- request   : { path => '/archives/2008', method => 'GET' }
+--- match     : { controller => 'Archive', action => 'by_year', year => 2008 }
+--- captures  : { year => 2008 }

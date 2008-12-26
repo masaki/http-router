@@ -3,20 +3,23 @@ name 'HTTP-Router';
 all_from 'lib/HTTP/Router.pm';
 
 requires 'Moose';
-requires 'Moose::Util::TypeConstraints';
 requires 'MooseX::AttributeHelpers';
+requires 'namespace::clean';
+
+requires 'URI::Template::Restrict';
+requires 'Hash::Merge';
 requires 'List::MoreUtils';
-requires 'Storable';
-requires 'URI::Template' => 0.13;
-requires 'Text::SimpleTable';
-requires 'Sub::Install';
-requires 'Module::Pluggable::Object';
+requires 'Set::Array';
+requires 'Lingua::EN::Inflect::Number';
 requires 'String::CamelCase';
-requires 'UNIVERSAL::require';
+
+requires 'Text::SimpleTable';
 
 tests 't/*.t';
 test_requires 'Test::More';
-test_requires 'Test::use::ok';
+test_requires 'ok';
+test_requires 'Test::MockObject';
+test_requires 'Test::Deep';
 author_tests 'xt';
 use_test_base;
 

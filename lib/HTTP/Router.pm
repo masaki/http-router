@@ -2,67 +2,54 @@ package HTTP::Router;
 
 use 5.8.1;
 use Moose;
-use MooseX::AttributeHelpers;
-use HTTP::Router::Route;
-use HTTP::Router::PluginLoader;
-use HTTP::Router::Builder::Connect;
+use HTTP::Router::Mapper;
+use HTTP::Router::Routes;
 
 our $VERSION = '0.01';
 
-has 'routes' => (
-    metaclass  => 'Collection::Array',
+has 'routeset' => (
     is         => 'rw',
-    isa        => 'ArrayRef[HTTP::Router::Route]',
-    auto_deref => 1,
-    default    => sub { [] },
-    provides   => { push => 'add_route', },
+    isa        => 'HTTP::Router::Routes',
+    lazy_build => 1,
+    handles    => { routes => 'all' },
 );
 
-has 'plugins' => (
-    metaclass  => 'Collection::Array',
-    is         => 'rw',
-    isa        => 'ArrayRef',
-    auto_deref => 1,
-    default    => sub { [] },
-    provides   => { push => 'add_plugin', },
-);
+sub _build_routeset { HTTP::Router::Routes->new }
 
-sub BUILD {
-    my $self = shift;
-    $self->load_plugins;
-}
+sub define {
+    my ($self, $block) = @_;
 
-sub load_plugins {
-    my $self   = shift;
-    my $loader = HTTP::Router::PluginLoader->new;
-    foreach my $plugin ( $self->plugins ) {
-        $loader->load_plugin($plugin);
+    unless (blessed $self) {
+        $self = $self->new;
     }
+
+    if ($block) {
+        local $_ = HTTP::Router::Mapper->new(routeset => $self->routeset);
+        $block->($_);
+    }
+
+    $self;
 }
 
-sub connect {
-    my ( $self, $path, $args ) = @_;
-    my $route = HTTP::Router::Builder::Connect->new->build( $path, $args );
-    $self->add_route($route);
+sub reset {
+    my $self = shift;
+    $self->routeset($self->_build_routeset);
+    $self;
 }
 
 sub match {
-    my ( $self, $path, $conditions ) = @_;
+    my ($self, $req) = @_;
 
-    my $slashes = scalar @{ [ $path =~ m!/!g ] };
-    my @routes = grep { $_->slashes eq $slashes } $self->routes;
-
-    # by path
-    if ( my @match
-        = grep {defined} map { $_->match( $path, $conditions ) } @routes )
-    {
-        return wantarray ? @match : shift(@match);
+    for my $route ($self->routes) {
+        next   unless my $match = $route->match($req);
+        return $match;
     }
+}
 
-    # with expansions
-    my @match = grep {defined}
-        map { $_->match_with_expansions( $path, $conditions ) } @routes;
-    return wantarray ? @match : shift(@match);
+sub route_for {
+    my ($self, $req) = @_;
+    return unless my $match = $self->match($req);
+    return $match->route;
 }
 
 sub show_table {
@@ -71,94 +58,71 @@ sub show_table {
     HTTP::Router::Debug->show_table( $self->routes );
 }
 
-__PACKAGE__->meta->make_immutable;
+no Moose; __PACKAGE__->meta->make_immutable;
 
-no Moose;
-
-1;
+=for stopwords routeset
 
 =head1 NAME
 
-HTTP::Router - Yet Another HTTP Dispatcher
+HTTP::Router - Yet Another Path Router for HTTP
 
 =head1 SYNOPSIS
 
   use HTTP::Router;
 
-  my $router = HTTP::Router->new;
+  my $router = HTTP::Router->define(sub {
+      $_->match('/')->to({ controller => 'Root', action => 'index' });
+      $_->match('/index.{format}')->to({ controller => 'Root', action => 'index' });
 
-  $router->connect('/' => { controller => 'Root', action => 'index' });
+      $_->match('/archives/{year}/{month}', { year => qr/\d{4}/, month => qr/\d{2}/ })
+          ->to({ controller => 'Archive', action => 'by_month' });
 
-  $router->connect('/archives/{year}/{month}' => {
-      controller   => 'Archive',
-      action       => 'by_month',
-      requirements => { year => qr/\d{4}/, month => qr/\d{2}/ },
+      $_->match('/account/login', { method => ['GET', 'POST'] })
+          ->to({ controller => 'Account', action => 'login' });
+
+      $_->resources('users');
+
+      $_->resource('account');
+
+      $_->resources('members', sub {
+          $_->resources('articles');
+      });
   });
 
-  $router->connect('/account/login' => {
-      controller => 'Account',
-      action     => 'login',
-      conditions => { method => ['GET', 'POST'] },
-  });
+  # GET /index.html
+  my $match = $router->match($req);
+  $match->params;   # { controller => 'Root', action => 'index', format => 'html' }
+  $match->captures; # { format => 'html' }
 
-  $router->connect('/articles/{article_id}' => {
-      controller => 'Article',
-      action     => 'show',
-      conditions => { method => 'GET' },
-  });
-  $router->connect('/articles/{article_id}' => {
-      controller => 'Article',
-      action     => 'update',
-      conditions => { method => 'PUT' },
-  });
-
-  my $match = $router->match('/');
-  $match->path;    # '/'
-  $match->params;  # { controller => 'Root', action => 'index' }
-  $match->uri_for; # '/'
-
-  $match = $router->match('/archives/2008/12');
-  # $match->params:
-  # {
-  #     controller => 'Archive',
-  #     action     => 'by_month',
-  #     year       => '2008',
-  #     month      => '12',
-  # }
-
-  my $path = $match->uri_for({ year => '2009', month => '01' });
-  print $path; # /archives/2009/01
-
-  my @match = $router->match('/articles/14');
-  print scalar(@match); # 2
-
-  $match = $router->match('/articles/14', { method => 'PUT' })
-  # $match->params:
-  # {
-  #     controller => 'Article',
-  #     action     => 'update',
-  #     article_id => '14',
-  # }
+  $match->uri_for({ format => 'xml' }); # '/index.xml'
 
 =head1 DESCRIPTION
 
-HTTP::Router is HTTP Dispatcher.
+HTTP::Router provides a Merb-like way of constructing routing tables.
 
 =head1 METHODS
 
 =head2 new
 
-=head2 connect($path [, $args])
+=head2 define($code)
 
-=head2 match($path [, $conditions])
+=head2 reset
+
+=head2 match($req)
+
+=head2 route_for($req)
 
 =head2 show_table
+
+=head1 PROPERTIES
+
+=head2 routeset
 
 =head1 AUTHOR
 
 NAKAGAWA Masaki E<lt>masaki@cpan.orgE<gt>
 
-Takatoshi KitanoE<lt>kitano.tk@gmail.comE<gt>
+Takatoshi Kitano E<lt>kitano.tk@gmail.comE<gt>
 
 =head1 LICENSE
 
@@ -167,6 +131,10 @@ it under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
+L<HTTP::Router::Mapper>, L<HTTP::Router::Resources>,
+L<HTTP::Router::Route>, L<HTTP::Router::Match>,
+
+L<MojoX::Routes>, L<http://merbivore.com/>,
 L<HTTPx::Dispatcher>, L<Path::Router>, L<Path::Dispatcher>
 
 =cut

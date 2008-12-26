@@ -1,12 +1,11 @@
+use Test::Base;
+use Test::Deep;
 use t::Router;
 use HTTP::Router::Route;
 
-plan tests => 4 * blocks;
+plan tests => 2 * blocks;
 
-filters {
-    params  => ['yaml'],
-    results => ['yaml'],
-};
+filters { map { $_ => ['eval'] } qw(params request) };
 
 run {
     my $block = shift;
@@ -16,33 +15,19 @@ run {
         params => $block->params,
     );
 
-    my $match = $route->match($block->input);
-    ok $match, "ok $name";
-    is $match->path => $block->input, "ok path $name";
-    is_deeply $match->params => $block->results, "ok params $name";
-
-    ok !$route->match($block->fake), "no match $name";
+    my $req = create_request($block->request);
+    my $match = $route->match($req);
+    ok $match, "match ($name)";
+    cmp_deeply $match->params => $block->params, "params ($name)";
 };
 
 __END__
 === /
---- path: /
---- params
-controller: Root
-action: index
---- input: /
---- results
-controller: Root
-action: index
---- fake: /404
+--- path  : /
+--- params: { controller => 'Root', action => 'index' }
+--- request: { path => '/' }
 
 === /account/login
---- path: /account/login
---- params
-controller: Account
-action: login
---- input: /account/login
---- results
-controller: Account
-action: login
---- fake: /account/404
+--- path  : /account/login
+--- params: { controller => 'Account', action => 'login' }
+--- request: { path => '/account/login' }

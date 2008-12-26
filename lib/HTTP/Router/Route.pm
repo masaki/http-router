@@ -1,152 +1,146 @@
 package HTTP::Router::Route;
 
 use Moose;
-use Moose::Util::TypeConstraints;
 use MooseX::AttributeHelpers;
-use List::MoreUtils qw(all true);
-use Storable qw(dclone);
-use URI::Template 0.13;
+use Hash::Merge qw(merge);
+use List::MoreUtils qw(any);
+use Set::Array;
+use URI::Template::Restrict;
 use HTTP::Router::Match;
-
-class_type 'URI::Template';
-
-coerce 'URI::Template' => from 'Str' => via { URI::Template->new($_) };
+use namespace::clean -except => ['meta'];
 
 has 'path' => (
     is       => 'rw',
-    isa      => 'URI::Template',
+    isa      => 'Str',
     required => 1,
-    coerce   => 1,
+    trigger  => sub {
+        my ($self, $path) = @_;
+        $self->parts([ split m!/! => $path ]);
+        $self->templates(
+            URI::Template::Restrict->new(template => $path)
+        );
+    },
+);
+
+has 'parts' => (
+    metaclass => 'Collection::Array',
+    is        => 'rw',
+    isa       => 'ArrayRef[Str]',
+    provides  => { count => 'part_size' },
+);
+
+has 'templates' => (
+    is      => 'rw',
+    isa     => 'URI::Template::Restrict',
+    handles => ['variables'],
 );
 
 has 'params' => (
     is      => 'rw',
     isa     => 'HashRef',
     default => sub { +{} },
+    lazy    => 1,
 );
 
 has 'conditions' => (
     is      => 'rw',
     isa     => 'HashRef[ Str | RegexpRef | ArrayRef ]',
     default => sub { +{} },
+    lazy    => 1,
 );
-
-has 'requirements' => (
-    is      => 'rw',
-    isa     => 'HashRef[ Str | RegexpRef | ArrayRef ]',
-    default => sub { +{} },
-);
-
-sub slashes {
-    return scalar @{[ shift->path->as_string =~ m!/!g ]};
-}
 
 sub match {
-    my ($self, $path, $conditions) = @_;
+    my ($self, $req) = @_;
+    return unless blessed $req;
 
-    # check slashes
-    return unless $self->_check_slashes($path);
-    # check path
-    return unless $path eq $self->path->as_string;
-    # check conditions
-    return unless $self->_check_conditions($conditions);
+    my $path = $req->can('path') ? $req->path : do {
+        if ($req->can('uri') and blessed($req->uri) and $req->uri->can('path')) {
+            $req->uri->path;
+        }
+        else {
+            undef;
+        }
+    };
+    return unless defined $path;
 
-    return $self->_build_match($path, dclone $self->params);
-}
+    # part size
+    my $size = scalar @{[ split m!/! => $path ]};
+    return unless $size == $self->part_size;
 
-sub match_with_expansions {
-    my ($self, $path, $conditions) = @_;
-
-    # check slashes
-    return unless $self->_check_slashes($path);
-    # check path
-    my %captures = $self->path->deparse($path);
-    return unless all { defined } values %captures;
-    # check requirements
-    return unless $self->_check_requirements(\%captures);
-    # check conditions
-    return unless $self->_check_conditions($conditions);
-
-    my $params = dclone $self->params;
-    $params = { %$params, %captures };
-
-    return $self->_build_match($path, $params);
-}
-
-sub uri_for {
-    my ($self, $args) = @_;
-
-    my $params = $args || {};
-
-    if ($self->path->variables > 0) {
-        return unless $self->_check_requirements($params);
+    # path, captures
+    my %vars = $self->templates->extract($path);
+    if (%vars) {
+        return unless $self->check_variable_conditions(\%vars);
+    }
+    else {
+        return unless $path eq $self->path;
     }
 
-    return $self->path->process_to_string(%$params);
-}
-
-sub _build_match {
-    my ($self, $path, $params) = @_;
+    # conditions
+    return unless $self->check_request_conditions($req);
 
     return HTTP::Router::Match->new(
-        path   => $path,
-        params => $params,
-        route  => $self,
+        params   => merge(\%vars, $self->params),
+        captures => \%vars,
+        route    => $self,
     );
 }
 
-sub _check_slashes {
-    my ($self, $path) = @_;
-    return scalar @{[ $path =~ m!/!g ]} == $self->slashes;
+sub uri_for {
+    my ($self, $captures) = @_;
+
+    my $params = $captures || {};
+    for my $name (keys %$params) {
+        return unless $self->validate($params->{$name}, $self->conditions->{$name});
+    }
+
+    return $self->templates->process_to_string(%$params);
 }
 
-sub _check_requirements {
-    my ($self, $args) = @_;
+sub check_variable_conditions {
+    my ($self, $vars) = @_;
 
-    # not exists
-    return 1 unless keys %{ $self->requirements } > 0;
-    # not supplied
-    return unless defined $args and keys %$args > 0;
-
-    # check
-    while (my ($key, $value) = each %$args) {
-        next unless exists $self->requirements->{$key};
-        return unless $self->_validate($value, $self->requirements->{$key});
+    for my $name (keys %$vars) {
+        return 0 unless $self->validate($vars->{$name}, $self->conditions->{$name});
     }
 
     return 1;
 }
 
-sub _check_conditions {
-    my ($self, $args) = @_;
+sub check_request_conditions {
+    my ($self, $req) = @_;
 
-    # not exists
-    return 1 unless my @keys = keys %{ $self->conditions };
-    # not supplied
-    return unless defined $args and keys %$args > 0;
+    my $conditions = Set::Array->new(keys %{ $self->conditions });
+    if ($self->variables) {
+        $conditions->delete($self->variables);
+    }
 
-    # check
-    for my $key (@keys) {
-        return unless exists $args->{$key};
-        return unless $self->_validate($args->{$key}, $self->conditions->{$key});
+    for my $name (@$conditions) {
+        return 0 unless my $code = $req->can($name);
+
+        my $value = $code->();
+        if ($name eq 'method') { # HEAD equals to GET
+            $value = 'GET' if $value eq 'HEAD';
+        }
+
+        return 0 unless $self->validate($value, $self->conditions->{$name});
     }
 
     return 1;
 }
 
-sub _validate {
+sub validate {
     my ($self, $input, $expected) = @_;
-
-    return $input =~ $expected              if ref $expected eq 'Regexp';
-    return true { $input eq $_ } @$expected if ref $expected eq 'ARRAY';
+    # arguments
+    return 0 unless defined $input;
+    return 1 unless defined $expected;
+    # validation
+    return $input =~ $expected             if ref $expected eq 'Regexp';
+    return any { $input eq $_ } @$expected if ref $expected eq 'ARRAY';
     return $input eq $expected;
 }
 
-__PACKAGE__->meta->make_immutable;
-
-no Moose;
-
-1;
+no Moose; __PACKAGE__->meta->make_immutable;
 
 =for stopwords params
 
@@ -156,23 +150,29 @@ HTTP::Router::Route
 
 =head1 METHODS
 
-=head2 match($path, $conditions)
+=head2 match($req)
 
-=head2 match_with_expansions($path, $conditions)
-
-=head2 uri_for($args)
+=head2 uri_for($captures?)
 
 =head1 PROPERTIES
 
 =head2 path
 
-=head2 slashes
-
 =head2 params
 
 =head2 conditions
 
-=head2 requirements
+=head2 variables
+
+=head2 templates
+
+=head1 INTERNALS
+
+=head2 check_variable_conditions
+
+=head2 check_request_conditions
+
+=head2 validate
 
 =head1 AUTHOR
 

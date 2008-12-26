@@ -2,31 +2,28 @@ package HTTP::Router::Match;
 
 use Moose;
 
-has 'path' => (
-    is       => 'rw',
-    isa      => 'Str',
-    required => 1,
+has 'params' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { +{} },
+    lazy    => 1,
 );
 
-has 'params' => (
-    is       => 'rw',
-    isa      => 'HashRef',
-    required => 1,
-    default  => sub { +{} },
+has 'captures' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { +{} },
+    lazy    => 1,
 );
 
 has 'route' => (
     is       => 'rw',
     isa      => 'HTTP::Router::Route',
-    required => 1,
     handles  => ['uri_for'],
+    required => 1,
 );
 
-__PACKAGE__->meta->make_immutable;
-
-no Moose;
-
-1;
+no Moose; __PACKAGE__->meta->make_immutable;
 
 =for stopwords params
 
@@ -36,13 +33,13 @@ HTTP::Router::Match
 
 =head1 METHODS
 
-=head2 uri_for($args)
+=head2 uri_for($captures?)
 
 =head1 PROPERTIES
 
-=head2 path
-
 =head2 params
+
+=head2 captures
 
 =head2 route
 
