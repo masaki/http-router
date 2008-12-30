@@ -118,7 +118,7 @@ sub check_request_conditions {
     for my $name (@$conditions) {
         return 0 unless my $code = $req->can($name);
 
-        my $value = $code->();
+        my $value = $req->$name;
         if ($name eq 'method') { # HEAD equals to GET
             $value = 'GET' if $value eq 'HEAD';
         }
