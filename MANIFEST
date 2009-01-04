@@ -88,6 +88,8 @@ t/33_define_resource.t
 t/34_define_resource_args.t
 t/35_define_nested_resource.t
 t/Router.pm
+tools/module_memory.pl
+tools/module_memory.sh
 tools/profile.pl
 tools/profile.sh
 xt/01_pod.t
