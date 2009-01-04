@@ -1,10 +1,8 @@
 package HTTP::Router::Route;
 
-use Moose;
-use MooseX::AttributeHelpers;
+use Mouse;
 use Hash::Merge qw(merge);
 use List::MoreUtils qw(any);
-use Set::Array;
 use URI::Template::Restrict;
 use HTTP::Router::Match;
 use namespace::clean -except => ['meta'];
@@ -15,18 +13,18 @@ has 'path' => (
     required => 1,
     trigger  => sub {
         my ($self, $path) = @_;
-        $self->parts([ split m!/! => $path ]);
-        $self->templates(
-            URI::Template::Restrict->new(template => $path)
-        );
+
+        my @parts = split m!/! => $path;
+        $self->parts(scalar @parts);
+
+        my $templates = URI::Template::Restrict->new(template => $path);
+        $self->templates($templates);
     },
 );
 
 has 'parts' => (
-    metaclass => 'Collection::Array',
-    is        => 'rw',
-    isa       => 'ArrayRef[Str]',
-    provides  => { count => 'part_size' },
+    is  => 'rw',
+    isa => 'Int',
 );
 
 has 'templates' => (
@@ -44,7 +42,7 @@ has 'params' => (
 
 has 'conditions' => (
     is      => 'rw',
-    isa     => 'HashRef[ Str | RegexpRef | ArrayRef ]',
+    isa     => 'HashRef',
     default => sub { +{} },
     lazy    => 1,
 );
@@ -65,7 +63,7 @@ sub match {
 
     # part size
     my $size = scalar @{[ split m!/! => $path ]};
-    return unless $size == $self->part_size;
+    return unless $size == $self->parts;
 
     # path, captures
     my %vars = $self->templates->extract($path);
@@ -110,15 +108,15 @@ sub check_variable_conditions {
 sub check_request_conditions {
     my ($self, $req) = @_;
 
-    my $conditions = Set::Array->new(keys %{ $self->conditions });
-    if ($self->variables) {
-        $conditions->delete($self->variables);
-    }
+    my $conditions = do {
+        my %vars = map { $_ => 1 } $self->variables;
+        [ grep { !$vars{$_} } keys %{ $self->conditions } ];
+    };
 
     for my $name (@$conditions) {
         return 0 unless my $code = $req->can($name);
 
-        my $value = $req->$name;
+        my $value = $code->($req);
         if ($name eq 'method') { # HEAD equals to GET
             $value = 'GET' if $value eq 'HEAD';
         }
@@ -140,7 +138,7 @@ sub validate {
     return $input eq $expected;
 }
 
-no Moose; __PACKAGE__->meta->make_immutable;
+no Mouse; __PACKAGE__->meta->make_immutable; 1;
 
 =for stopwords params
 

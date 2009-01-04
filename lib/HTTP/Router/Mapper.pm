@@ -1,6 +1,6 @@
 package HTTP::Router::Mapper;
 
-use Moose;
+use Mouse;
 use Hash::Merge qw(merge);
 use HTTP::Router::Route;
 use HTTP::Router::Routes;
@@ -50,7 +50,7 @@ sub freeze {
         conditions => $self->conditions,
     );
 
-    $self->routeset->push($route);
+    push @{ $self->routeset->routes }, $route;
     $self->route($route);
 
     return $self;
@@ -112,7 +112,7 @@ __PACKAGE__->meta->add_method(register => __PACKAGE__->can('to'));
 
 #sub name {}
 
-no Moose; __PACKAGE__->meta->make_immutable;
+no Mouse; __PACKAGE__->meta->make_immutable; 1;
 
 =for stopwords params routeset
 

@@ -2,14 +2,12 @@ use inc::Module::Install;
 name 'HTTP-Router';
 all_from 'lib/HTTP/Router.pm';
 
-requires 'Moose';
-requires 'MooseX::AttributeHelpers';
+requires 'Mouse' => '0.14';
 requires 'namespace::clean';
 
 requires 'URI::Template::Restrict';
 requires 'Hash::Merge';
 requires 'List::MoreUtils';
-requires 'Set::Array';
 requires 'Lingua::EN::Inflect::Number';
 requires 'String::CamelCase';
 

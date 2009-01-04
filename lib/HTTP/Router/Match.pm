@@ -1,6 +1,6 @@
 package HTTP::Router::Match;
 
-use Moose;
+use Mouse;
 
 has 'params' => (
     is      => 'rw',
@@ -23,7 +23,7 @@ has 'route' => (
     required => 1,
 );
 
-no Moose; __PACKAGE__->meta->make_immutable;
+no Mouse; __PACKAGE__->meta->make_immutable; 1;
 
 =for stopwords params
 

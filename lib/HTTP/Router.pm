@@ -1,7 +1,7 @@
 package HTTP::Router;
 
 use 5.8.1;
-use Moose;
+use Mouse;
 use HTTP::Router::Mapper;
 use HTTP::Router::Routes;
 
@@ -11,7 +11,7 @@ has 'routeset' => (
     is         => 'rw',
     isa        => 'HTTP::Router::Routes',
     lazy_build => 1,
-    handles    => { routes => 'all' },
+    handles    => ['routes'],
 );
 
 sub _build_routeset { HTTP::Router::Routes->new }
@@ -58,7 +58,7 @@ sub show_table {
     HTTP::Router::Debug->show_table( $self->routes );
 }
 
-no Moose; __PACKAGE__->meta->make_immutable;
+no Mouse; __PACKAGE__->meta->make_immutable; 1;
 
 =for stopwords routeset
 

@@ -1,6 +1,6 @@
 package HTTP::Router::Resources;
 
-use Moose::Role;
+use Mouse::Role;
 use Hash::Merge qw(merge);
 use Lingua::EN::Inflect::Number qw(to_S to_PL);
 use String::CamelCase qw(camelize decamelize);
@@ -108,7 +108,7 @@ sub resource {
     $self;
 }
 
-no Moose::Role; 1;
+no Mouse::Role; 1;
 
 =head1 NAME
 

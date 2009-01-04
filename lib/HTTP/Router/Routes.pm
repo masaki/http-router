@@ -1,19 +1,17 @@
 package HTTP::Router::Routes;
 
-use Moose;
-use MooseX::AttributeHelpers;
+use Mouse;
 use HTTP::Router::Route;
 
 has 'routes' => (
-    metaclass => 'Collection::Array',
-    is        => 'rw',
-    isa       => 'ArrayRef[HTTP::Router::Route]',
-    default   => sub { [] },
-    lazy      => 1,
-    provides  => { elements => 'all', push => 'push' },
+    is         => 'rw',
+    isa        => 'ArrayRef',
+    default    => sub { [] },
+    lazy       => 1,
+    auto_deref => 1,
 );
 
-no Moose; __PACKAGE__->meta->make_immutable;
+no Mouse; __PACKAGE__->meta->make_immutable; 1;
 
 =head1 NAME
 
