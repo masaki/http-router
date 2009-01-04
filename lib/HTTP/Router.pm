@@ -3,18 +3,18 @@ package HTTP::Router;
 use 5.8.1;
 use Mouse;
 use HTTP::Router::Mapper;
-use HTTP::Router::Routes;
+use HTTP::Router::RouteSet;
 
 our $VERSION = '0.01';
 
 has 'routeset' => (
     is         => 'rw',
-    isa        => 'HTTP::Router::Routes',
+    isa        => 'HTTP::Router::RouteSet',
     lazy_build => 1,
     handles    => ['routes'],
 );
 
-sub _build_routeset { HTTP::Router::Routes->new }
+sub _build_routeset { HTTP::Router::RouteSet->new }
 
 sub define {
     my ($self, $block) = @_;

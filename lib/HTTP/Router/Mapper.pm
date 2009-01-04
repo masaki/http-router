@@ -3,14 +3,14 @@ package HTTP::Router::Mapper;
 use Mouse;
 use Hash::Merge qw(merge);
 use HTTP::Router::Route;
-use HTTP::Router::Routes;
+use HTTP::Router::RouteSet;
 use namespace::clean -except => ['meta'];
 
 with 'HTTP::Router::Resources';
 
 has 'routeset' => (
     is       => 'rw',
-    isa      => 'HTTP::Router::Routes',
+    isa      => 'HTTP::Router::RouteSet',
     required => 1,
 );
 
@@ -50,7 +50,7 @@ sub freeze {
         conditions => $self->conditions,
     );
 
-    push @{ $self->routeset->routes }, $route;
+    $self->routeset->add_route($route);
     $self->route($route);
 
     return $self;

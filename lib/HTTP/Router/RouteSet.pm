@@ -1,7 +1,6 @@
-package HTTP::Router::Routes;
+package HTTP::Router::RouteSet;
 
 use Mouse;
-use HTTP::Router::Route;
 
 has 'routes' => (
     is         => 'rw',
@@ -10,6 +9,23 @@ has 'routes' => (
     lazy       => 1,
     auto_deref => 1,
 );
+
+has 'named_routes' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { +{} },
+    lazy    => 1,
+);
+
+sub add_route {
+    my ($self, $route) = @_;
+    push @{ $self->routes }, $route;
+}
+
+sub add_named_route {
+    my ($self, $name, $route) = @_;
+    $self->named_routes->{$name} = $route;
+}
 
 no Mouse; __PACKAGE__->meta->make_immutable; 1;
 
