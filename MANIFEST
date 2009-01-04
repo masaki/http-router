@@ -66,7 +66,7 @@ lib/HTTP/Router/Mapper.pm
 lib/HTTP/Router/Match.pm
 lib/HTTP/Router/Resources.pm
 lib/HTTP/Router/Route.pm
-lib/HTTP/Router/Routes.pm
+lib/HTTP/Router/RouteSet.pm
 Makefile.PL
 MANIFEST			This list of files
 META.yml
@@ -88,6 +88,8 @@ t/33_define_resource.t
 t/34_define_resource_args.t
 t/35_define_nested_resource.t
 t/Router.pm
+tools/profile.pl
+tools/profile.sh
 xt/01_pod.t
 xt/02_podcoverage.t
 xt/03_podspell.t

@@ -31,17 +31,19 @@ no Mouse; __PACKAGE__->meta->make_immutable; 1;
 
 =head1 NAME
 
-HTTP::Router::Routes
+HTTP::Router::RouteSet
 
 =head1 METHODS
 
-=head2 all
+=head2 add_route($route)
 
-=head2 push($route)
+=head2 add_named_route($name, $route)
 
 =head1 PROPERTIES
 
 =head2 routes
+
+=head2 named_routes
 
 =head1 AUTHOR
 
