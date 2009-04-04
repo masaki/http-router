@@ -4,7 +4,6 @@ use Mouse;
 use Hash::Merge qw(merge);
 use HTTP::Router::Route;
 use HTTP::Router::RouteSet;
-use namespace::clean -except => ['meta'];
 
 with 'HTTP::Router::Resources';
 

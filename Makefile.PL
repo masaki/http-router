@@ -3,7 +3,6 @@ name 'HTTP-Router';
 all_from 'lib/HTTP/Router.pm';
 
 requires 'Mouse' => '0.14';
-requires 'namespace::clean';
 
 requires 'URI::Template::Restrict';
 requires 'Hash::Merge';

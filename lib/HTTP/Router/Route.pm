@@ -5,7 +5,6 @@ use Hash::Merge qw(merge);
 use List::MoreUtils qw(any);
 use URI::Template::Restrict;
 use HTTP::Router::Match;
-use namespace::clean -except => ['meta'];
 
 has 'path' => (
     is       => 'rw',

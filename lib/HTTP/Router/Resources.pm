@@ -4,7 +4,6 @@ use Mouse::Role;
 use Hash::Merge qw(merge);
 use Lingua::EN::Inflect::Number qw(to_S to_PL);
 use String::CamelCase qw(camelize decamelize);
-use namespace::clean -except => ['meta'];
 
 sub resources {
     my $self = shift;
