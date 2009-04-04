@@ -13,9 +13,9 @@ requires 'String::CamelCase';
 
 requires 'Text::SimpleTable';
 
-tests 't/*.t';
+tests 't/*.t t/*/*.t';
 test_requires 'Test::More';
-test_requires 'ok';
+test_requires 'Test::UseAllModules';
 test_requires 'Test::MockObject';
 test_requires 'Test::Deep';
 author_tests 'xt';
