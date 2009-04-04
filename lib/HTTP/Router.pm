@@ -1,6 +1,6 @@
 package HTTP::Router;
 
-use 5.8.1;
+use 5.008_001;
 use Mouse;
 use HTTP::Router::Mapper;
 use HTTP::Router::RouteSet;
