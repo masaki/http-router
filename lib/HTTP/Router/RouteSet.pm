@@ -1,21 +1,14 @@
 package HTTP::Router::RouteSet;
 
-use Mouse;
+use strict;
+use warnings;
+use base 'Class::Accessor::Fast';
 
-has 'routes' => (
-    is         => 'rw',
-    isa        => 'ArrayRef',
-    default    => sub { [] },
-    lazy       => 1,
-    auto_deref => 1,
-);
+__PACKAGE__->mk_ro_accessors(qw'routes named_routes');
 
-has 'named_routes' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
-    lazy    => 1,
-);
+sub new {
+    return bless { routes => [], named_routes => {} }, shift;
+}
 
 sub add_route {
     my ($self, $route) = @_;
@@ -27,7 +20,7 @@ sub add_named_route {
     $self->named_routes->{$name} = $route;
 }
 
-no Mouse; __PACKAGE__->meta->make_immutable; 1;
+1;
 
 =head1 NAME
 

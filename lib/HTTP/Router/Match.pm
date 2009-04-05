@@ -1,29 +1,14 @@
 package HTTP::Router::Match;
 
-use Mouse;
+use strict;
+use warnings;
+use base 'Class::Accessor::Fast';
 
-has 'params' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
-    lazy    => 1,
-);
+__PACKAGE__->mk_ro_accessors(qw'params captures route');
 
-has 'captures' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
-    lazy    => 1,
-);
+sub uri_for { shift->route->uri_for(@_) }
 
-has 'route' => (
-    is       => 'rw',
-    isa      => 'HTTP::Router::Route',
-    handles  => ['uri_for'],
-    required => 1,
-);
-
-no Mouse; __PACKAGE__->meta->make_immutable; 1;
+1;
 
 =for stopwords params
 

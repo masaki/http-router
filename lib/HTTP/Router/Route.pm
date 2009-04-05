@@ -16,7 +16,7 @@ has 'path' => (
         my @parts = split m!/! => $path;
         $self->parts(scalar @parts);
 
-        my $templates = URI::Template::Restrict->new(template => $path);
+        my $templates = URI::Template::Restrict->new($path);
         $self->templates($templates);
     },
 );
@@ -76,11 +76,11 @@ sub match {
     # conditions
     return unless $self->check_request_conditions($req);
 
-    return HTTP::Router::Match->new(
+    return HTTP::Router::Match->new({
         params   => merge(\%vars, $self->params),
         captures => \%vars,
         route    => $self,
-    );
+    });
 }
 
 sub uri_for {

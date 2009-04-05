@@ -1,26 +1,28 @@
 package HTTP::Router;
 
 use 5.008_001;
-use Mouse;
+use strict;
+use warnings;
+use base 'Class::Accessor::Fast';
 use HTTP::Router::Mapper;
 use HTTP::Router::RouteSet;
 
 our $VERSION = '0.01';
 
-has 'routeset' => (
-    is         => 'rw',
-    isa        => 'HTTP::Router::RouteSet',
-    lazy_build => 1,
-    handles    => ['routes'],
-);
+__PACKAGE__->mk_accessors('routeset');
 
 sub _build_routeset { HTTP::Router::RouteSet->new }
+
+sub routes { @{ shift->routeset->routes } }
 
 sub define {
     my ($self, $block) = @_;
 
-    unless (blessed $self) {
+    unless (ref $self) {
         $self = $self->new;
+    }
+    unless ($self->routeset) {
+        $self->routeset($self->_build_routeset);
     }
 
     if ($block) {
@@ -41,15 +43,15 @@ sub match {
     my ($self, $req) = @_;
 
     for my $route ($self->routes) {
-        next   unless my $match = $route->match($req);
+        next unless my $match = $route->match($req);
         return $match;
     }
 }
 
 sub route_for {
     my ($self, $req) = @_;
-    return unless my $match = $self->match($req);
-    return $match->route;
+    my $match = $self->match($req);
+    return defined $match ? $match->route : undef;
 }
 
 sub show_table {
@@ -58,7 +60,7 @@ sub show_table {
     HTTP::Router::Debug->show_table( $self->routes );
 }
 
-no Mouse; __PACKAGE__->meta->make_immutable; 1;
+1;
 
 =for stopwords routeset
 
