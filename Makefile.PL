@@ -4,7 +4,7 @@ all_from 'lib/HTTP/Router.pm';
 
 requires 'Mouse' => '0.14';
 
-requires 'URI::Template::Restrict';
+requires 'URI::Template::Restrict' => '0.03';
 requires 'Hash::Merge';
 requires 'List::MoreUtils';
 requires 'Lingua::EN::Inflect::Number';
