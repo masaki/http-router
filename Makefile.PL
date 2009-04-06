@@ -2,14 +2,13 @@ use inc::Module::Install;
 name 'HTTP-Router';
 all_from 'lib/HTTP/Router.pm';
 
-requires 'Mouse' => '0.14';
-
-requires 'URI::Template::Restrict' => '0.03';
+requires 'Class::Accessor::Fast';
 requires 'Hash::Merge';
 requires 'List::MoreUtils';
+requires 'Scalar::Util' => '1.14';
 requires 'Lingua::EN::Inflect::Number';
 requires 'String::CamelCase';
-
+requires 'URI::Template::Restrict' => '0.03';
 requires 'Text::SimpleTable';
 
 tests 't/*.t t/*/*.t';

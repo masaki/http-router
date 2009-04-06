@@ -1,9 +1,13 @@
 package HTTP::Router::Resources;
 
-use Mouse::Role;
+use strict;
+use warnings;
+use Exporter 'import';
 use Hash::Merge qw(merge);
 use Lingua::EN::Inflect::Number qw(to_S to_PL);
 use String::CamelCase qw(camelize decamelize);
+
+our @EXPORT = qw(resources resource);
 
 sub resources {
     my $self = shift;
@@ -107,7 +111,7 @@ sub resource {
     $self;
 }
 
-no Mouse::Role; 1;
+1;
 
 =head1 NAME
 

@@ -1,53 +1,35 @@
 package HTTP::Router::Mapper;
 
-use Mouse;
+use strict;
+use warnings;
+use base 'Class::Accessor::Fast';
 use Hash::Merge qw(merge);
 use HTTP::Router::Route;
 use HTTP::Router::RouteSet;
+use HTTP::Router::Resources;
 
-with 'HTTP::Router::Resources';
+__PACKAGE__->mk_ro_accessors('routeset');
+__PACKAGE__->mk_accessors(qw'path params conditions route');
 
-has 'routeset' => (
-    is       => 'rw',
-    isa      => 'HTTP::Router::RouteSet',
-    required => 1,
-);
+sub new {
+    my $class = shift;
+    my $args  = ref $_[0] ? $_[0] : { @_ };
 
-has 'route' => (
-    is        => 'rw',
-    isa       => 'HTTP::Router::Route',
-    predicate => 'has_route',
-);
+    $args->{path}       ||= '';
+    $args->{params}     ||= {};
+    $args->{conditions} ||= {};
 
-has 'path' => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => '',
-    lazy    => 1,
-);
-
-has 'conditions' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
-    lazy    => 1,
-);
-
-has 'params' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
-    lazy    => 1,
-);
+    return bless $args, ref $class || $class;
+}
 
 sub freeze {
     my $self = shift;
 
-    my $route = HTTP::Router::Route->new(
+    my $route = HTTP::Router::Route->new({
         path       => $self->path,
         params     => $self->params,
         conditions => $self->conditions,
-    );
+    });
 
     $self->routeset->add_route($route);
     $self->route($route);
@@ -57,12 +39,12 @@ sub freeze {
 
 sub clone {
     my ($self, %params) = @_;
-    return $self->meta->clone_instance($self, %params, routeset => $self->routeset);
+    return $self->new(%params, routeset => $self->routeset);
 }
 
 sub match {
     my $self = shift;
-    return $self if $self->has_route;
+    return $self if $self->route;
 
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
     my ($path, $conditions) = @_;
@@ -80,11 +62,9 @@ sub match {
     return $mapper;
 }
 
-#sub namespace {}
-
 sub to {
     my $self = shift;
-    return $self if $self->has_route;
+    return $self if $self->route;
 
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
     my $params = shift || {};
@@ -106,12 +86,16 @@ sub to {
 }
 
 # alias 'with' and 'register' => 'to'
-__PACKAGE__->meta->add_method(with     => __PACKAGE__->can('to'));
-__PACKAGE__->meta->add_method(register => __PACKAGE__->can('to'));
+{
+    no warnings 'once';
+    *with     = \&to;
+    *register = \&to;
+}
 
+#sub namespace {}
 #sub name {}
 
-no Mouse; __PACKAGE__->meta->make_immutable; 1;
+1;
 
 =for stopwords params routeset
 
