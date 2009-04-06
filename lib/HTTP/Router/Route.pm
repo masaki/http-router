@@ -1,63 +1,36 @@
 package HTTP::Router::Route;
 
-use Mouse;
-use Hash::Merge qw(merge);
-use List::MoreUtils qw(any);
+use strict;
+use warnings;
+use base 'Class::Accessor::Fast';
+use Hash::Merge 'merge';
+use List::MoreUtils 'any';
+use Scalar::Util 1.14 'blessed';
 use URI::Template::Restrict;
 use HTTP::Router::Match;
 
-has 'path' => (
-    is       => 'rw',
-    isa      => 'Str',
-    required => 1,
-    trigger  => sub {
-        my ($self, $path) = @_;
+__PACKAGE__->mk_ro_accessors(qw'path parts templates params conditions');
 
-        my @parts = split m!/! => $path;
-        $self->parts(scalar @parts);
+sub variables { shift->templates->variables }
 
-        my $templates = URI::Template::Restrict->new($path);
-        $self->templates($templates);
-    },
-);
+sub new {
+    my $class = shift;
+    my $args  = ref $_[0] ? $_[0] : { @_ };
 
-has 'parts' => (
-    is  => 'rw',
-    isa => 'Int',
-);
+    my @parts = split m!/! => $args->{path};
+    $args->{parts}        = scalar @parts;
+    $args->{templates}    = URI::Template::Restrict->new($args->{path});
+    $args->{params}     ||= {};
+    $args->{conditions} ||= {};
 
-has 'templates' => (
-    is      => 'rw',
-    isa     => 'URI::Template::Restrict',
-    handles => ['variables'],
-);
-
-has 'params' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
-    lazy    => 1,
-);
-
-has 'conditions' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
-    lazy    => 1,
-);
+    return bless $args, $class;
+}
 
 sub match {
     my ($self, $req) = @_;
-    return unless blessed $req;
+    return unless blessed $req and $req->can('path');
 
-    my $path = $req->can('path') ? $req->path : do {
-        if ($req->can('uri') and blessed($req->uri) and $req->uri->can('path')) {
-            $req->uri->path;
-        }
-        else {
-            undef;
-        }
-    };
+    my $path = $req->path;
     return unless defined $path;
 
     # part size
@@ -137,7 +110,7 @@ sub validate {
     return $input eq $expected;
 }
 
-no Mouse; __PACKAGE__->meta->make_immutable; 1;
+1;
 
 =for stopwords params
 
