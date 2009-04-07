@@ -17,7 +17,7 @@ our @EXPORT = qw(show_table);
 
 sub show_table {
     my ( $self, ) = @_;
-    my $report = $class->_make_table_report;
+    my $report = _make_table_report($self);
     print $report . "\n";
 }
 
@@ -29,7 +29,7 @@ sub _make_table_report {
         [ 10, 'controller' ],
         [ 10, 'action' ]
     );
-    for my $route (@{ $self->routes }) {
+    for my $route ($self->routes) {
         my $method = $route->conditions->{method};
         $method = [ $method ] unless ref $method;
         $t->row(
