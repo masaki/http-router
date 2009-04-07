@@ -40,29 +40,25 @@ sub resources {
             my $method = ref $args eq 'HASH' ? $args->{method} : $args;
             my $conditions = { method => $method };
             my $params     = { action => $action };
-            $_->match("${path}.{format}", $conditions)->to($params);
-            $_->match("${path}",          $conditions)->to($params);
+            $_[0]->match("${path}.{format}", $conditions)->to($params);
+            $_[0]->match("${path}",          $conditions)->to($params);
         }
 
         # members
-        $_->match("/{$id}", sub {
+        $_[0]->match("/{$id}", sub {
             while (my ($action, $args) = each %$members) {
                 my $path   = ref $args ? $args->{path}   : "/${action}";
                 my $method = ref $args ? $args->{method} : $args;
                 my $conditions = { method => $method };
                 my $params     = { action => $action };
-                $_->match("${path}.{format}", $conditions)->to($params);
-                $_->match("${path}",          $conditions)->to($params);
+                $_[0]->match("${path}.{format}", $conditions)->to($params);
+                $_[0]->match("${path}",          $conditions)->to($params);
             }
         });
     });
 
     if ($block) {
-        local $_ = $self->clone(
-            path       => $self->path . "/${path}/{$id}",
-            conditions => $self->conditions,
-            params     => $self->params,
-        );
+        local $_ = $self->_clone_mapper(path => $self->path . "/${path}/{$id}");
         $block->($_);
     }
 
@@ -94,17 +90,13 @@ sub resource {
             my $method = ref $args eq 'HASH' ? $args->{method} : $args;
             my $conditions = { method => $method };
             my $params     = { action => $action };
-            $_->match("${path}.{format}", $conditions)->to($params);
-            $_->match("${path}",          $conditions)->to($params);
+            $_[0]->match("${path}.{format}", $conditions)->to($params);
+            $_[0]->match("${path}",          $conditions)->to($params);
         }
     });
 
     if ($block) {
-        local $_ = $self->clone(
-            path       => $self->path . "/${path}",
-            conditions => $self->conditions,
-            params     => $self->params,
-        );
+        local $_ = $self->_clone_mapper(path => $self->path . "/${path}");
         $block->($_);
     }
 

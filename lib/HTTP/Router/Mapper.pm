@@ -3,6 +3,7 @@ package HTTP::Router::Mapper;
 use strict;
 use warnings;
 use base 'Class::Accessor::Fast';
+use Carp qw(croak);
 use Hash::Merge qw(merge);
 use HTTP::Router::Route;
 use HTTP::Router::RouteSet;
@@ -19,10 +20,25 @@ sub new {
     $args->{params}     ||= {};
     $args->{conditions} ||= {};
 
-    return bless $args, ref $class || $class;
+    return bless $args, $class;
 }
 
-sub freeze {
+sub _clone_mapper {
+    my ($self, %params) = @_;
+
+    for my $key (qw'path params conditions') {
+        $params{$key} = $self->$key unless exists $params{$key};
+    }
+
+    my $class = ref $self || $self;
+    return $class->new(
+        %params,
+        route    => undef,
+        routeset => $self->routeset,
+    );
+}
+
+sub _freeze_route {
     my $self = shift;
 
     my $route = HTTP::Router::Route->new({
@@ -37,23 +53,21 @@ sub freeze {
     return $self;
 }
 
-sub clone {
-    my ($self, %params) = @_;
-    return $self->new(%params, routeset => $self->routeset);
-}
-
 sub match {
     my $self = shift;
-    return $self if $self->route;
+    croak 'route has already been committed' if $self->route;
 
+    # TODO: parameterize
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
     my ($path, $conditions) = @_;
+    croak '$path or $conditions is required' unless $path or $conditions;
 
-    my $mapper = $self->clone(
-        path       => $self->path . $path,
-        conditions => merge($conditions || {}, $self->conditions),
-        params     => $self->params,
+    my %extra = (
+        $path       ? (path       => $self->path . $path)                   : (),
+        $conditions ? (conditions => merge($conditions, $self->conditions)) : (),
     );
+    my $mapper = $self->_clone_mapper(%extra);
+
     if ($block) {
         local $_ = $mapper;
         $block->($_);
@@ -64,34 +78,48 @@ sub match {
 
 sub to {
     my $self = shift;
-    return $self if $self->route;
+    croak 'route has already been committed' if $self->route;
 
+    # TODO: parameterize
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
-    my $params = shift || {};
+    my $params = shift;
+    croak '$params is required' unless $params;
 
-    my $mapper = $self->clone(
-        path       => $self->path,
-        conditions => $self->conditions,
-        params     => merge($params, $self->params),
-    );
+    $self->params(merge($params, $self->params));
+
     if ($block) {
-        local $_ = $mapper;
+        local $_ = $self;
         $block->($_);
     }
     else {
-        $mapper->freeze;
+        $self->_freeze_route;
     }
 
-    return $mapper;
+    return $self;
 }
 
-# alias 'with' and 'register' => 'to'
-{
-    no warnings 'once';
-    *with     = \&to;
-    *register = \&to;
+sub with { 
+    my $self = shift;
+    croak 'route has already been committed' if $self->route;
+
+    # TODO: parameterize
+    my $block = ref $_[-1] eq 'CODE' ? pop : undef;
+    my $params = shift;
+    croak '$params and $block are required' unless $params and $block;
+
+    local $_ = $self->_clone_mapper(params => merge($params, $self->params));
+    $block->($_);
+
+    return $_;
 }
 
+sub register {
+    my $self = shift;
+    croak 'route has already been committed' if $self->route;
+    return $self->_freeze_route;
+}
+
+# TODO: not implemented yet
 #sub namespace {}
 #sub name {}
 
@@ -125,11 +153,11 @@ HTTP::Router::Mapper
 
 =head1 METHODS
 
-=head2 match($path, $conditions?, $block?)
+=head2 match($path?, $conditions?, $block?)
 
-=head2 to($params?, $block?)
+=head2 to($params, $block?)
 
-=head2 with($params?, $block?)
+=head2 with($params, $block)
 
 =head2 register
 
@@ -144,12 +172,6 @@ HTTP::Router::Mapper
 =head2 conditions
 
 =head2 params
-
-=head1 INTERNALS
-
-=head2 freeze
-
-=head2 clone
 
 =head1 AUTHOR
 
