@@ -54,12 +54,6 @@ sub route_for {
     return defined $match ? $match->route : undef;
 }
 
-sub show_table {
-    my $self = shift;
-    require HTTP::Router::Debug;
-    HTTP::Router::Debug->show_table( $self->routes );
-}
-
 1;
 
 =for stopwords routeset
@@ -113,8 +107,6 @@ HTTP::Router provides a Merb-like way of constructing routing tables.
 =head2 match($req)
 
 =head2 route_for($req)
-
-=head2 show_table
 
 =head1 PROPERTIES
 

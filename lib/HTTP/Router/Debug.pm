@@ -2,26 +2,39 @@ package HTTP::Router::Debug;
 
 use strict;
 use warnings;
+use HTTP::Router;
 use Text::SimpleTable;
 
+our @EXPORT = qw(show_table);
+
+{
+    no strict 'refs';
+    no warnings 'redefine';
+    for my $keyword (@EXPORT) {
+        *{ 'HTTP::Router::' . $keyword } = \&{ $keyword };
+    }
+}
+
 sub show_table {
-    my ( $class, @routes ) = @_;
-    my $report = $class->_make_table_report(\@routes);
+    my ( $self, ) = @_;
+    my $report = $class->_make_table_report;
     print $report . "\n";
 }
 
 sub _make_table_report {
-    my ( $class, $routes ) = @_;
+    my ( $self, ) = @_;
     my $t = Text::SimpleTable->new(
         [ 35, 'path' ],
         [ 10, 'method' ],
         [ 10, 'controller' ],
         [ 10, 'action' ]
     );
-    foreach my $route ( @{$routes} ) {
+    for my $route (@{ $self->routes }) {
+        my $method = $route->conditions->{method};
+        $method = [ $method ] unless ref $method;
         $t->row(
             $route->path,
-            join( ',', @{ $route->conditions->{method} } ),
+            join( ',', @$method ),
             $route->params->{controller},
             $route->params->{action}
         );
@@ -39,7 +52,7 @@ HTTP::Router::Debug
 
 =head1 METHODS
 
-=head2 show_table(@routes)
+=head2 show_table
 
 =head1 AUTHOR
 
