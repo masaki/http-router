@@ -4,6 +4,7 @@ use 5.008_001;
 use strict;
 use warnings;
 use base 'Class::Accessor::Fast';
+use Carp qw(croak);
 use HTTP::Router::Mapper;
 use HTTP::Router::RouteSet;
 
@@ -13,31 +14,31 @@ __PACKAGE__->mk_accessors('routeset');
 
 sub _build_routeset { HTTP::Router::RouteSet->new }
 
-sub routes { @{ shift->routeset->routes } }
+sub new {
+    my $class = shift;
+    return bless { routeset => $class->_build_routeset }, $class;
+}
 
 sub define {
     my ($self, $block) = @_;
 
-    unless (ref $self) {
-        $self = $self->new;
-    }
-    unless ($self->routeset) {
-        $self->routeset($self->_build_routeset);
-    }
+    croak 'usage: HTTP::Router->define($coderef)'
+        unless ref $block and ref $block eq 'CODE';
+    $self = $self->new unless ref $self;
 
-    if ($block) {
-        local $_ = HTTP::Router::Mapper->new(routeset => $self->routeset);
-        $block->($_);
-    }
+    local $_ = HTTP::Router::Mapper->new(routeset => $self->routeset);
+    $block->($_);
 
-    $self;
+    return $self;
 }
 
 sub reset {
     my $self = shift;
     $self->routeset($self->_build_routeset);
-    $self;
+    return $self;
 }
+
+sub routes { @{ shift->routeset->routes } }
 
 sub match {
     my ($self, $req) = @_;
@@ -46,12 +47,18 @@ sub match {
         next unless my $match = $route->match($req);
         return $match;
     }
+
+    return;
 }
 
 sub route_for {
     my ($self, $req) = @_;
-    my $match = $self->match($req);
-    return defined $match ? $match->route : undef;
+
+    if (my $match = $self->match($req)) {
+        return $match->route;
+    }
+
+    return;
 }
 
 1;
