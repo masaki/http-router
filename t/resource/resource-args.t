@@ -2,6 +2,7 @@ use Test::Base;
 use Test::Deep;
 use t::Router;
 use HTTP::Router;
+use HTTP::Router::Resources;
 
 plan tests => 1 + 2*blocks;
 

@@ -2,12 +2,24 @@ package HTTP::Router::Resources;
 
 use strict;
 use warnings;
-use Exporter 'import';
-use Hash::Merge qw(merge);
+use Carp 'croak';
+use Hash::Merge 'merge';
 use Lingua::EN::Inflect::Number qw(to_S to_PL);
 use String::CamelCase qw(camelize decamelize);
 
 our @EXPORT = qw(resources resource);
+
+sub import {
+    # TODO: into package
+    my $into = 'HTTP::Router::Mapper';
+    eval "require $into; 1" or croak $@;
+
+    no strict 'refs';
+    no warnings 'redefine';
+    for my $keyword (@EXPORT) {
+        *{ $into . '::' . $keyword } = \&{ __PACKAGE__ . '::' . $keyword };
+    }
+}
 
 sub resources {
     my $self = shift;
@@ -112,6 +124,7 @@ HTTP::Router::Resources
 =head1 SYNOPSIS
 
   use HTTP::Router;
+  use HTTP::Router::Resources;
 
   my $router = HTTP::Router->define(sub {
       $_->resources('users');

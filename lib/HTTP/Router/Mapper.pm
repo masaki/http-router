@@ -3,11 +3,10 @@ package HTTP::Router::Mapper;
 use strict;
 use warnings;
 use base 'Class::Accessor::Fast';
-use Carp qw(croak);
-use Hash::Merge qw(merge);
+use Carp 'croak';
+use Hash::Merge 'merge';
 use HTTP::Router::Route;
 use HTTP::Router::RouteSet;
-use HTTP::Router::Resources;
 
 __PACKAGE__->mk_ro_accessors('routeset');
 __PACKAGE__->mk_accessors(qw'path params conditions route');
