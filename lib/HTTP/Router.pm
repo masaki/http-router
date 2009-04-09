@@ -4,29 +4,45 @@ use 5.008_001;
 use strict;
 use warnings;
 use base 'Class::Accessor::Fast';
-use Carp qw(croak);
+use Carp ();
 use HTTP::Router::Mapper;
-use HTTP::Router::RouteSet;
 
 our $VERSION = '0.01';
 
-__PACKAGE__->mk_accessors('routeset');
-
-sub _build_routeset { HTTP::Router::RouteSet->new }
+__PACKAGE__->mk_ro_accessors(qw'routes named_routes');
 
 sub new {
-    my $class = shift;
-    return bless { routeset => $class->_build_routeset }, $class;
+    return bless { routes => [], named_routes => {} }, shift;
+}
+
+sub routes {
+    my $self = shift;
+    if (@_) {
+        $self->_routes_accessor(@_);
+    }
+    else {
+        @{ $self->_routes_accessor };
+    }
+}
+
+sub add_route {
+    my ($self, $route) = @_;
+    push @{ $self->{routes} }, $route;
+}
+
+sub add_named_route {
+    my ($self, $name, $route) = @_;
+    $self->named_routes->{$name} = $route;
 }
 
 sub define {
     my ($self, $block) = @_;
 
-    croak 'usage: HTTP::Router->define($coderef)'
+    Carp::croak('usage: HTTP::Router->define($coderef)')
         unless ref $block and ref $block eq 'CODE';
     $self = $self->new unless ref $self;
 
-    local $_ = HTTP::Router::Mapper->new(routeset => $self->routeset);
+    local $_ = HTTP::Router::Mapper->new({ router => $self });
     $block->($_);
 
     return $self;
@@ -34,11 +50,10 @@ sub define {
 
 sub reset {
     my $self = shift;
-    $self->routeset($self->_build_routeset);
+    $self->{routes} = [];
+    $self->{named_routes} = {};
     return $self;
 }
-
-sub routes { @{ shift->routeset->routes } }
 
 sub match {
     my ($self, $req) = @_;
@@ -62,8 +77,6 @@ sub route_for {
 }
 
 1;
-
-=for stopwords routeset
 
 =head1 NAME
 
@@ -115,9 +128,9 @@ HTTP::Router provides a Merb-like way of constructing routing tables.
 
 =head2 route_for($req)
 
-=head1 PROPERTIES
+=head2 add_route
 
-=head2 routeset
+=head2 add_named_route
 
 =head1 AUTHOR
 

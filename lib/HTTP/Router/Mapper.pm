@@ -6,14 +6,12 @@ use base 'Class::Accessor::Fast';
 use Carp 'croak';
 use Hash::Merge 'merge';
 use HTTP::Router::Route;
-use HTTP::Router::RouteSet;
 
-__PACKAGE__->mk_ro_accessors('routeset');
+__PACKAGE__->mk_ro_accessors('router');
 __PACKAGE__->mk_accessors(qw'path params conditions route');
 
 sub new {
-    my $class = shift;
-    my $args  = ref $_[0] ? $_[0] : { @_ };
+    my ($class, $args) = @_;
 
     $args->{path}       ||= '';
     $args->{params}     ||= {};
@@ -30,11 +28,7 @@ sub _clone_mapper {
     }
 
     my $class = ref $self || $self;
-    return $class->new(
-        %params,
-        route    => undef,
-        routeset => $self->routeset,
-    );
+    return $class->new({ %params, router => $self->router });
 }
 
 sub _freeze_route {
@@ -46,7 +40,7 @@ sub _freeze_route {
         conditions => $self->conditions,
     });
 
-    $self->routeset->add_route($route);
+    $self->router->add_route($route);
     $self->route($route);
 
     return $self;
@@ -124,7 +118,7 @@ sub register {
 
 1;
 
-=for stopwords params routeset
+=for stopwords params
 
 =head1 NAME
 
@@ -162,15 +156,15 @@ HTTP::Router::Mapper
 
 =head1 PROPERTIES
 
-=head2 routeset
-
-=head2 route
-
 =head2 path
 
 =head2 conditions
 
 =head2 params
+
+=head2 route
+
+=head2 router
 
 =head1 AUTHOR
 
