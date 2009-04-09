@@ -1,48 +1,53 @@
 package HTTP::Router;
 
 use 5.008_001;
-use strict;
-use warnings;
-use base 'Class::Accessor::Fast';
+use Any::Moose;
 use Carp ();
 use HTTP::Router::Mapper;
 
 our $VERSION = '0.01';
 
-__PACKAGE__->mk_ro_accessors(qw'routes named_routes');
+has 'routes' => (
+    is         => 'ro',
+    isa        => 'ArrayRef',
+    metaclass  => 'Collection::Array',
+    lazy       => 1,
+    default    => sub { [] },
+    auto_deref => 1,
+    provides   => {
+        push  => 'add_route',
+        clear => 'clear_routes',
+    },
+);
 
-sub new {
-    return bless { routes => [], named_routes => {} }, shift;
-}
+has 'named_routes' => (
+    is         => 'ro',
+    isa        => 'HashRef',
+    metaclass  => 'Collection::Hash',
+    lazy       => 1,
+    default    => sub { +{} },
+    auto_deref => 1,
+    provides   => {
+        set   => 'add_named_route',
+        clear => 'clear_named_routes',
+    },
+);
 
-sub routes {
-    my $self = shift;
-    if (@_) {
-        $self->_routes_accessor(@_);
+before 'define' => sub {
+    # $_[1] is $block
+    unless (ref $_[1] and ref $_[1] eq 'CODE') {
+        Carp::croak('usage: HTTP::Router->define(CODEREF)');
     }
-    else {
-        @{ $self->_routes_accessor };
-    }
-}
+};
 
-sub add_route {
-    my ($self, $route) = @_;
-    push @{ $self->{routes} }, $route;
-}
-
-sub add_named_route {
-    my ($self, $name, $route) = @_;
-    $self->named_routes->{$name} = $route;
-}
+no Any::Moose;
 
 sub define {
     my ($self, $block) = @_;
 
-    Carp::croak('usage: HTTP::Router->define($coderef)')
-        unless ref $block and ref $block eq 'CODE';
     $self = $self->new unless ref $self;
 
-    local $_ = HTTP::Router::Mapper->new({ router => $self });
+    local $_ = HTTP::Router::Mapper->new(router => $self);
     $block->($_);
 
     return $self;
@@ -50,8 +55,8 @@ sub define {
 
 sub reset {
     my $self = shift;
-    $self->{routes} = [];
-    $self->{named_routes} = {};
+    $self->clear_routes;
+    $self->clear_named_routes;
     return $self;
 }
 
@@ -76,7 +81,7 @@ sub route_for {
     return;
 }
 
-1;
+__PACKAGE__->meta->make_immutable;
 
 =head1 NAME
 

@@ -1,24 +1,54 @@
 package HTTP::Router::Mapper;
 
-use strict;
-use warnings;
-use base 'Class::Accessor::Fast';
-use Carp 'croak';
+use Any::Moose;
+use Any::Moose 'X::AttributeHelpers';
+use Carp ();
 use Hash::Merge 'merge';
+use HTTP::Router;
 use HTTP::Router::Route;
 
-__PACKAGE__->mk_ro_accessors('router');
-__PACKAGE__->mk_accessors(qw'path params conditions route');
+has 'router' => (
+    is       => 'rw',
+    isa      => 'HTTP::Router',
+    required => 1,
+);
 
-sub new {
-    my ($class, $args) = @_;
+has 'route' => (
+    is  => 'rw',
+    isa => 'HTTP::Router::Route',
+);
 
-    $args->{path}       ||= '';
-    $args->{params}     ||= {};
-    $args->{conditions} ||= {};
+has 'path' => (
+    is        => 'rw',
+    isa       => 'Str',
+    metaclass => 'String',
+    default   => '',
+    provides  => {
+        append => 'append_path',
+    },
+);
 
-    return bless $args, $class;
-}
+has 'params' => (
+    is        => 'rw',
+    isa       => 'HashRef',
+    metaclass => 'Collection::Hash',
+    default   => sub { +{} },
+    provides  => {
+        set => 'add_params',
+    },
+);
+
+has 'conditions' => (
+    is        => 'rw',
+    isa       => 'HashRef',
+    metaclass => 'Collection::Hash',
+    default   => sub { +{} },
+    provides  => {
+        set => 'add_conditions',
+    },
+);
+
+no Any::Moose;
 
 sub _clone_mapper {
     my ($self, %params) = @_;
@@ -28,17 +58,17 @@ sub _clone_mapper {
     }
 
     my $class = ref $self || $self;
-    return $class->new({ %params, router => $self->router });
+    return $class->new(%params, router => $self->router);
 }
 
 sub _freeze_route {
     my $self = shift;
 
-    my $route = HTTP::Router::Route->new({
+    my $route = HTTP::Router::Route->new(
         path       => $self->path,
         params     => $self->params,
         conditions => $self->conditions,
-    });
+    );
 
     $self->router->add_route($route);
     $self->route($route);
@@ -48,12 +78,12 @@ sub _freeze_route {
 
 sub match {
     my $self = shift;
-    croak 'route has already been committed' if $self->route;
+    Carp::croak('route has already been committed') if $self->route;
 
     # TODO: parameterize
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
     my ($path, $conditions) = @_;
-    croak '$path or $conditions is required' unless $path or $conditions;
+    Carp::croak('$path or $conditions is required') unless $path or $conditions;
 
     my %extra = (
         $path       ? (path       => $self->path . $path)                   : (),
@@ -71,12 +101,12 @@ sub match {
 
 sub to {
     my $self = shift;
-    croak 'route has already been committed' if $self->route;
+    Carp::croak('route has already been committed') if $self->route;
 
     # TODO: parameterize
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
     my $params = shift;
-    croak '$params is required' unless $params;
+    Carp::croak('$params is required') unless $params;
 
     $self->params(merge($params, $self->params));
 
@@ -93,12 +123,12 @@ sub to {
 
 sub with { 
     my $self = shift;
-    croak 'route has already been committed' if $self->route;
+    Carp::croak('route has already been committed') if $self->route;
 
     # TODO: parameterize
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
     my $params = shift;
-    croak '$params and $block are required' unless $params and $block;
+    Carp::croak('$params and $block are required') unless $params and $block;
 
     local $_ = $self->_clone_mapper(params => merge($params, $self->params));
     $block->($_);
@@ -108,7 +138,7 @@ sub with {
 
 sub register {
     my $self = shift;
-    croak 'route has already been committed' if $self->route;
+    Carp::croak('route has already been committed') if $self->route;
     return $self->_freeze_route;
 }
 

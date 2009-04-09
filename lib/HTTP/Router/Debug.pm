@@ -1,25 +1,16 @@
 package HTTP::Router::Debug;
 
-use strict;
-use warnings;
+use Mouse::Role;
+use Mouse::Meta::Role;
 use Text::SimpleTable;
+use HTTP::Router;
 
-our @EXPORT = qw(routing_table draw_routing_table);
+requires 'routes';
 
-sub import {
-    # TODO: into package
-    my $into = 'HTTP::Router';
-    eval "require $into; 1" or die $@;
+no Mouse::Role;
 
-    no strict 'refs';
-    no warnings 'redefine';
-    for my $keyword (@EXPORT) {
-        *{ $into . '::' . $keyword } = \&{ __PACKAGE__ . '::' . $keyword };
-    }
-}
-
-sub draw_routing_table {
-    my $table = shift->routing_table->draw;
+sub show_table {
+    my $table = $_[0]->routing_table->draw;
     print "$table\n";
 }
 
@@ -48,6 +39,9 @@ sub routing_table {
     return $table;
 }
 
+# apply roles
+Mouse::Meta::Role->initialize(__PACKAGE__)->apply( HTTP::Router->meta );
+
 1;
 
 =head1 NAME
@@ -63,13 +57,17 @@ HTTP::Router::Debug
 
     print $router->routing_table->draw;
     # or
-    $router->draw_routing_table;
+    $router->show_table;
 
 =head1 METHODS
 
 =head2 routing_table
 
-=head2 draw_routing_table
+Returns a Text::SimpleTable object for routing information.
+
+=head2 show_table
+
+Constructs and Prints a table for routing information.
 
 =head1 AUTHOR
 

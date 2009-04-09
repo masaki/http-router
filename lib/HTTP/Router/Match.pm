@@ -1,16 +1,24 @@
 package HTTP::Router::Match;
 
-use strict;
-use warnings;
-use base 'Class::Accessor::Fast';
+use Any::Moose;
 
-__PACKAGE__->mk_ro_accessors(qw'params captures route');
+has 'params' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    lazy    => 1,
+    default => sub { +{} },
+);
 
-sub uri_for { shift->route->uri_for(@_) }
+has 'route' => (
+    is       => 'rw',
+    isa      => 'HTTP::Router::Route',
+    handles  => ['uri_for'],
+    required => 1,
+);
 
-1;
+no Any::Moose;
 
-=for stopwords params
+__PACKAGE__->meta->make_immutable;
 
 =head1 NAME
 
@@ -18,13 +26,11 @@ HTTP::Router::Match
 
 =head1 METHODS
 
-=head2 uri_for($captures?)
+=head2 uri_for($args?)
 
 =head1 PROPERTIES
 
 =head2 params
-
-=head2 captures
 
 =head2 route
 

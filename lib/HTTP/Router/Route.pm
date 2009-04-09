@@ -1,29 +1,78 @@
 package HTTP::Router::Route;
 
-use strict;
-use warnings;
-use base 'Class::Accessor::Fast';
-use Hash::Merge 'merge';
-use List::MoreUtils 'any';
-use Scalar::Util 1.14 'blessed';
-use URI::Template::Restrict;
+use Any::Moose;
+use Any::Moose 'X::AttributeHelpers';
+use Clone ();
+use URI::Template::Restrict 0.03;
 use HTTP::Router::Match;
 
-__PACKAGE__->mk_ro_accessors(qw'path parts templates params conditions');
+has 'path' => (
+    is        => 'rw',
+    isa       => 'Str',
+    metaclass => 'String',
+    default   => '',
+    provides  => {
+        append => 'append_path',
+    },
+);
 
-sub variables { shift->templates->variables }
+has 'params' => (
+    is        => 'rw',
+    isa       => 'HashRef',
+    metaclass => 'Collection::Hash',
+    default   => sub { +{} },
+    provides  => {
+        set => 'add_params',
+    },
+);
 
-sub new {
-    my $class = shift;
-    my $args  = ref $_[0] ? $_[0] : { @_ };
+has 'conditions' => (
+    is        => 'rw',
+    isa       => 'HashRef',
+    metaclass => 'Collection::Hash',
+    default   => sub { +{} },
+    provides  => {
+        set => 'add_conditions',
+    },
+);
 
-    my @parts = split m!/! => $args->{path};
-    $args->{parts}        = scalar @parts;
-    $args->{templates}    = URI::Template::Restrict->new($args->{path});
-    $args->{params}     ||= {};
-    $args->{conditions} ||= {};
+has 'parts' => (
+    is  => 'rw',
+    isa => 'Int',
+);
 
-    return bless $args, $class;
+has 'templates' => (
+    is      => 'rw',
+    isa     => 'URI::Template::Restrict',
+    handles => ['variables'],
+);
+
+has 'frozen' => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0,
+);
+
+after 'freeze' => sub {
+    $_[0]->frozen(1);
+};
+
+no Any::Moose;
+
+sub freeze {
+    my $self = shift;
+
+    my $path = $self->path;
+    my @parts = split m!/! => $path;
+    $self->parts(scalar @parts);
+    $self->templates(URI::Template::Restrict->new($path));
+
+    return $self;
+}
+
+sub clone {
+    my $self = shift;
+    return $self->frozen ? undef : Clone::clone($self);
 }
 
 sub match {
@@ -49,22 +98,21 @@ sub match {
     # conditions
     return unless $self->check_request_conditions($req);
 
-    return HTTP::Router::Match->new({
-        params   => merge(\%vars, $self->params),
-        captures => \%vars,
-        route    => $self,
-    });
+    for my $key (keys %{ $self->params }) {
+        next if exists $vars{$key};
+        $vars{$key} = $self->params->{$key};
+    }
+    return HTTP::Router::Match->new(params => \%vars, route => $self);
 }
 
 sub uri_for {
-    my ($self, $captures) = @_;
+    my ($self, $args) = @_;
 
-    my $params = $captures || {};
-    for my $name (keys %$params) {
-        return unless $self->validate($params->{$name}, $self->conditions->{$name});
+    for my $name (keys %{ $args || {} }) {
+        return unless $self->validate($args->{$name}, $self->conditions->{$name});
     }
 
-    return $self->templates->process_to_string(%$params);
+    return $self->templates->process_to_string(%$args);
 }
 
 sub check_variable_conditions {
@@ -105,8 +153,8 @@ sub validate {
     return 0 unless defined $input;
     return 1 unless defined $expected;
     # validation
-    return $input =~ $expected             if ref $expected eq 'Regexp';
-    return any { $input eq $_ } @$expected if ref $expected eq 'ARRAY';
+    return $input =~ $expected              if ref $expected eq 'Regexp';
+    return grep { $input eq $_ } @$expected if ref $expected eq 'ARRAY';
     return $input eq $expected;
 }
 
