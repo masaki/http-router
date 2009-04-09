@@ -1,13 +1,13 @@
 package HTTP::Router::Debug;
 
-use Mouse::Role;
-use Mouse::Meta::Role;
+use Any::Moose '::Role';
+use Any::Moose '::Meta::Role';
 use Text::SimpleTable;
 use HTTP::Router;
 
 requires 'routes';
 
-no Mouse::Role;
+no Any::Moose '::Role';
 
 sub show_table {
     my $table = $_[0]->routing_table->draw;
@@ -40,7 +40,7 @@ sub routing_table {
 }
 
 # apply roles
-Mouse::Meta::Role->initialize(__PACKAGE__)->apply( HTTP::Router->meta );
+any_moose('::Meta::Role')->initialize(__PACKAGE__)->apply(HTTP::Router->meta);
 
 1;
 
