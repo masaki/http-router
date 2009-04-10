@@ -3,10 +3,10 @@ use Test::Deep;
 use t::Router;
 use HTTP::Router::Route;
 
-plan tests => 3 * blocks;
+plan tests => 2 * blocks;
 
 filters {
-    map { $_ => ['eval'] } qw(params conditions request match captures)
+    map { $_ => ['eval'] } qw(params conditions request match)
 };
 
 run {
@@ -16,13 +16,12 @@ run {
         path       => $block->path,
         params     => $block->params,
         conditions => $block->conditions,
-    );
+    )->freeze;
 
     my $req = create_request($block->request);
     my $match = $route->match($req);
     ok $match, "match ($name)";
     cmp_deeply $match->params => $block->match, "params ($name)";
-    cmp_deeply $match->captures => $block->captures, "captures ($name)";
 };
 
 __END__
@@ -32,8 +31,6 @@ __END__
 --- conditions: { method => 'GET' }
 --- request   : { path => '/', method => 'GET' }
 --- match     : { controller => 'Root', action => 'index' }
---- captures  : {}
-
 
 === array conditions
 --- path      : /
@@ -41,7 +38,6 @@ __END__
 --- conditions: { method => ['GET', 'POST'] }
 --- request   : { path => '/', method => 'GET' }
 --- match     : { controller => 'Root', action => 'index' }
---- captures  : {}
 
 === regexp conditions
 --- path      : /
@@ -49,7 +45,6 @@ __END__
 --- conditions: { method => qr/^(?:GET|POST)$/ }
 --- request   : { path => '/', method => 'GET' }
 --- match     : { controller => 'Root', action => 'index' }
---- captures  : {}
 
 === captures
 --- path      : /archives/{year}
@@ -57,7 +52,6 @@ __END__
 --- conditions: { year => qr/^\d{4}$/ }
 --- request   : { path => '/archives/2008' }
 --- match     : { controller => 'Archive', action => 'by_year', year => 2008 }
---- captures  : { year => 2008 }
 
 === captures and conditions
 --- path      : /archives/{year}
@@ -65,4 +59,3 @@ __END__
 --- conditions: { method => 'GET', year => qr/^\d{4}$/ }
 --- request   : { path => '/archives/2008', method => 'GET' }
 --- match     : { controller => 'Archive', action => 'by_year', year => 2008 }
---- captures  : { year => 2008 }

@@ -1,7 +1,6 @@
 package HTTP::Router::Debug;
 
 use Any::Moose '::Role';
-use Any::Moose '::Meta::Role';
 use Text::SimpleTable;
 use HTTP::Router;
 
@@ -40,7 +39,7 @@ sub routing_table {
 }
 
 # apply roles
-any_moose('::Meta::Role')->initialize(__PACKAGE__)->apply(HTTP::Router->meta);
+__PACKAGE__->meta->apply( HTTP::Router->meta );
 
 1;
 

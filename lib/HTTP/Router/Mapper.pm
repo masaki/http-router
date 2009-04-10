@@ -4,7 +4,6 @@ use Any::Moose;
 use Any::Moose 'X::AttributeHelpers';
 use Carp ();
 use Hash::Merge 'merge';
-use HTTP::Router;
 use HTTP::Router::Route;
 
 has 'router' => (
@@ -68,7 +67,7 @@ sub _freeze_route {
         path       => $self->path,
         params     => $self->params,
         conditions => $self->conditions,
-    );
+    )->freeze;
 
     $self->router->add_route($route);
     $self->route($route);

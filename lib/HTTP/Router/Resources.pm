@@ -1,31 +1,17 @@
 package HTTP::Router::Resources;
 
-use strict;
-use warnings;
-use Carp 'croak';
+use Any::Moose '::Role';
 use Hash::Merge 'merge';
 use Lingua::EN::Inflect::Number qw(to_S to_PL);
 use String::CamelCase qw(camelize decamelize);
 
-our @EXPORT = qw(resources resource);
+requires qw(match _clone_mapper);
 
-sub import {
-    # TODO: into package
-    my $into = 'HTTP::Router::Mapper';
-    eval "require $into; 1" or croak $@;
-
-    no strict 'refs';
-    no warnings 'redefine';
-    for my $keyword (@EXPORT) {
-        *{ $into . '::' . $keyword } = \&{ __PACKAGE__ . '::' . $keyword };
-    }
-}
+no Any::Moose '::Role';
 
 sub resources {
-    my $self = shift;
-
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
-    my ($name, $args) = @_;
+    my ($self, $name, $args) = @_;
 
     my $path     = decamelize $name;
     my $params   = { controller => $args->{controller} || camelize(to_PL($path)) };
@@ -114,6 +100,9 @@ sub resource {
 
     $self;
 }
+
+# apply roles
+__PACKAGE__->meta->apply( HTTP::Router::Mapper->meta );
 
 1;
 
