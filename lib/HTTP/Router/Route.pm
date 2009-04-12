@@ -1,40 +1,26 @@
 package HTTP::Router::Route;
 
 use Any::Moose;
-use Any::Moose 'X::AttributeHelpers';
-use Clone ();
 use URI::Template::Restrict 0.03;
 use HTTP::Router::Match;
 
 has 'path' => (
-    is        => 'rw',
-    isa       => 'Str',
-    metaclass => 'String',
-    default   => '',
-    trigger   => sub { goto &freeze },
-    provides  => {
-        append => 'append_path',
-    },
+    is      => 'rw',
+    isa     => 'Str',
+    default => '',
+    trigger => sub { goto &freeze },
 );
 
 has 'params' => (
-    is        => 'rw',
-    isa       => 'HashRef',
-    metaclass => 'Collection::Hash',
-    default   => sub { +{} },
-    provides  => {
-        set => 'add_params',
-    },
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { +{} },
 );
 
 has 'conditions' => (
-    is        => 'rw',
-    isa       => 'HashRef',
-    metaclass => 'Collection::Hash',
-    default   => sub { +{} },
-    provides  => {
-        set => 'add_conditions',
-    },
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { +{} },
 );
 
 has 'parts' => (
@@ -48,16 +34,6 @@ has 'templates' => (
     handles => ['variables'],
 );
 
-has 'frozen' => (
-    is      => 'rw',
-    isa     => 'Bool',
-    default => 0,
-);
-
-after 'freeze' => sub {
-    $_[0]->frozen(1);
-};
-
 no Any::Moose;
 
 sub freeze {
@@ -69,11 +45,6 @@ sub freeze {
     $self->templates(URI::Template::Restrict->new($path));
 
     return $self;
-}
-
-sub clone {
-    my $self = shift;
-    return $self->frozen ? undef : Clone::clone($self);
 }
 
 sub match {
