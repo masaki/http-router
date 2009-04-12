@@ -3,14 +3,14 @@ package HTTP::Router::Match;
 use Any::Moose;
 
 has 'params' => (
-    is      => 'rw',
+    is      => 'ro',
     isa     => 'HashRef',
     lazy    => 1,
     default => sub { +{} },
 );
 
 has 'route' => (
-    is       => 'rw',
+    is       => 'ro',
     isa      => 'HTTP::Router::Route',
     handles  => ['uri_for'],
     required => 1,

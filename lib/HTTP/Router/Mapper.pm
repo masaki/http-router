@@ -47,6 +47,11 @@ has 'conditions' => (
     },
 );
 
+before qw'match to with register' => sub {
+    my $self = shift;
+    Carp::croak('route has already been committed') if $self->route;
+};
+
 no Any::Moose;
 
 sub _clone_mapper {
@@ -76,12 +81,8 @@ sub _freeze_route {
 }
 
 sub match {
-    my $self = shift;
-    Carp::croak('route has already been committed') if $self->route;
-
-    # TODO: parameterize
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
-    my ($path, $conditions) = @_;
+    my ($self, $path, $conditions) = @_;
     Carp::croak('$path or $conditions is required') unless $path or $conditions;
 
     my %extra = (
@@ -99,12 +100,8 @@ sub match {
 }
 
 sub to {
-    my $self = shift;
-    Carp::croak('route has already been committed') if $self->route;
-
-    # TODO: parameterize
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
-    my $params = shift;
+    my ($self, $params) = @_;
     Carp::croak('$params is required') unless $params;
 
     $self->params(merge($params, $self->params));
@@ -120,13 +117,9 @@ sub to {
     return $self;
 }
 
-sub with { 
-    my $self = shift;
-    Carp::croak('route has already been committed') if $self->route;
-
-    # TODO: parameterize
+sub with {
     my $block = ref $_[-1] eq 'CODE' ? pop : undef;
-    my $params = shift;
+    my ($self, $params) = @_;
     Carp::croak('$params and $block are required') unless $params and $block;
 
     local $_ = $self->_clone_mapper(params => merge($params, $self->params));
@@ -135,17 +128,13 @@ sub with {
     return $_;
 }
 
-sub register {
-    my $self = shift;
-    Carp::croak('route has already been committed') if $self->route;
-    return $self->_freeze_route;
-}
+sub register { $_[0]->_freeze_route }
 
 # TODO: not implemented yet
 #sub namespace {}
 #sub name {}
 
-1;
+__PACKAGE__->meta->make_immutable;
 
 =for stopwords params
 

@@ -158,7 +158,7 @@ sub validate {
     return $input eq $expected;
 }
 
-1;
+__PACKAGE__->meta->make_immutable;
 
 =for stopwords params
 
