@@ -11,6 +11,7 @@ has 'path' => (
     isa       => 'Str',
     metaclass => 'String',
     default   => '',
+    trigger   => sub { goto &freeze },
     provides  => {
         append => 'append_path',
     },

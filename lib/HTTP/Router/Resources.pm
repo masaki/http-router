@@ -5,7 +5,7 @@ use Hash::Merge 'merge';
 use Lingua::EN::Inflect::Number qw(to_S to_PL);
 use String::CamelCase qw(camelize decamelize);
 
-requires qw(match _clone_mapper);
+requires qw(match fork);
 
 no Any::Moose '::Role';
 
@@ -56,7 +56,7 @@ sub resources {
     });
 
     if ($block) {
-        local $_ = $self->_clone_mapper(path => $self->path . "/${path}/{$id}");
+        local $_ = $self->fork(path => $self->path . "/${path}/{$id}");
         $block->($_);
     }
 
@@ -94,7 +94,7 @@ sub resource {
     });
 
     if ($block) {
-        local $_ = $self->_clone_mapper(path => $self->path . "/${path}");
+        local $_ = $self->fork(path => $self->path . "/${path}");
         $block->($_);
     }
 

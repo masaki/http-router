@@ -13,7 +13,7 @@ run {
     my $route = HTTP::Router::Route->new(
         path       => $block->path,
         conditions => $block->conditions || {},
-    )->freeze;
+    );
 
     is $route->uri_for($block->args) => $block->uri, "uri_for ($name)";
 };

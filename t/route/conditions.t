@@ -16,7 +16,7 @@ run {
         path       => $block->path,
         params     => $block->params,
         conditions => $block->conditions,
-    )->freeze;
+    );
 
     my $req = create_request($block->request);
     my $match = $route->match($req);

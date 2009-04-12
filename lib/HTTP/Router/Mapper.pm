@@ -3,6 +3,7 @@ package HTTP::Router::Mapper;
 use Any::Moose;
 use Any::Moose 'X::AttributeHelpers';
 use Carp ();
+use Clone ();
 use Hash::Merge 'merge';
 use HTTP::Router::Route;
 
@@ -13,8 +14,9 @@ has 'router' => (
 );
 
 has 'route' => (
-    is  => 'rw',
-    isa => 'HTTP::Router::Route',
+    is        => 'rw',
+    isa       => 'HTTP::Router::Route',
+    predicate => 'has_route',
 );
 
 has 'path' => (
@@ -49,30 +51,32 @@ has 'conditions' => (
 
 before qw'match to with register' => sub {
     my $self = shift;
-    Carp::croak('route has already been committed') if $self->route;
+    Carp::croak('route has already been committed') if $self->has_route;
 };
 
 no Any::Moose;
 
-sub _clone_mapper {
+sub fork {
     my ($self, %params) = @_;
 
     for my $key (qw'path params conditions') {
         $params{$key} = $self->$key unless exists $params{$key};
     }
 
-    my $class = ref $self || $self;
-    return $class->new(%params, router => $self->router);
+    return $self->meta->name->new(
+        %{ Clone::clone(\%params) },
+        router => $self->router,
+    );
 }
 
-sub _freeze_route {
+sub register_route {
     my $self = shift;
 
     my $route = HTTP::Router::Route->new(
         path       => $self->path,
         params     => $self->params,
         conditions => $self->conditions,
-    )->freeze;
+    );
 
     $self->router->add_route($route);
     $self->route($route);
@@ -89,7 +93,7 @@ sub match {
         $path       ? (path       => $self->path . $path)                   : (),
         $conditions ? (conditions => merge($conditions, $self->conditions)) : (),
     );
-    my $mapper = $self->_clone_mapper(%extra);
+    my $mapper = $self->fork(%extra);
 
     if ($block) {
         local $_ = $mapper;
@@ -104,14 +108,14 @@ sub to {
     my ($self, $params) = @_;
     Carp::croak('$params is required') unless $params;
 
-    $self->params(merge($params, $self->params));
+    $self->add_params(%$params);
 
     if ($block) {
         local $_ = $self;
         $block->($_);
     }
     else {
-        $self->_freeze_route;
+        $self->register_route;
     }
 
     return $self;
@@ -122,13 +126,13 @@ sub with {
     my ($self, $params) = @_;
     Carp::croak('$params and $block are required') unless $params and $block;
 
-    local $_ = $self->_clone_mapper(params => merge($params, $self->params));
+    local $_ = $self->fork(params => merge($params, $self->params));
     $block->($_);
 
     return $_;
 }
 
-sub register { $_[0]->_freeze_route }
+sub register { $_[0]->register_route }
 
 # TODO: not implemented yet
 #sub namespace {}
