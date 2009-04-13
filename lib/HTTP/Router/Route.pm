@@ -1,26 +1,33 @@
 package HTTP::Router::Route;
 
 use Any::Moose;
+use Any::Moose 'X::AttributeHelpers';
 use URI::Template::Restrict 0.03;
 use HTTP::Router::Match;
 
 has 'path' => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => '',
-    trigger => sub { goto &freeze },
+    is        => 'rw',
+    isa       => 'Str',
+    metaclass => 'String',
+    default   => '',
+    trigger   => sub { goto &freeze },
+    provides  => { append => 'append_path' },
 );
 
 has 'params' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
+    is        => 'rw',
+    isa       => 'HashRef',
+    metaclass => 'Collection::Hash',
+    default   => sub { +{} },
+    provides  => { set => 'add_params' },
 );
 
 has 'conditions' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { +{} },
+    is        => 'rw',
+    isa       => 'HashRef',
+    metaclass => 'Collection::Hash',
+    default   => sub { +{} },
+    provides  => { set => 'add_conditions' },
 );
 
 has 'parts' => (
