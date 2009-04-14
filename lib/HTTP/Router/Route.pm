@@ -9,8 +9,8 @@ has 'path' => (
     is        => 'rw',
     isa       => 'Str',
     metaclass => 'String',
+    lazy    => 1,
     default   => '',
-    trigger   => sub { goto &freeze },
     provides  => { append => 'append_path' },
 );
 
@@ -18,6 +18,7 @@ has 'params' => (
     is        => 'rw',
     isa       => 'HashRef',
     metaclass => 'Collection::Hash',
+    lazy    => 1,
     default   => sub { +{} },
     provides  => { set => 'add_params' },
 );
@@ -26,6 +27,7 @@ has 'conditions' => (
     is        => 'rw',
     isa       => 'HashRef',
     metaclass => 'Collection::Hash',
+    lazy    => 1,
     default   => sub { +{} },
     provides  => { set => 'add_conditions' },
 );
@@ -33,26 +35,19 @@ has 'conditions' => (
 has 'parts' => (
     is  => 'rw',
     isa => 'Int',
+    lazy => 1,
+    default => sub { scalar @{[ split m!/! => shift->path ]} },
 );
 
 has 'templates' => (
     is      => 'rw',
     isa     => 'URI::Template::Restrict',
+    lazy    => 1,
+    default => sub { URI::Template::Restrict->new(shift->path) },
     handles => ['variables'],
 );
 
 no Any::Moose;
-
-sub freeze {
-    my $self = shift;
-
-    my $path = $self->path;
-    my @parts = split m!/! => $path;
-    $self->parts(scalar @parts);
-    $self->templates(URI::Template::Restrict->new($path));
-
-    return $self;
-}
 
 sub match {
     my ($self, $req) = @_;

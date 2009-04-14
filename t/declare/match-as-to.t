@@ -9,7 +9,7 @@ filters { map { $_ => ['eval'] } qw(params conditions request results) };
 
 my $router = router {
     while (my $block = next_block) {
-        match $block->path, $block->conditions => to $block->params;
+        match $block->path => as $block->conditions => to $block->params;
     }
 };
 

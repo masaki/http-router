@@ -5,12 +5,12 @@ use HTTP::Router::Declare;
 
 plan tests => 1 + 2*blocks;
 
-filters { map { $_ => ['eval'] } qw(params conditions request results) };
+filters { map { $_ => ['eval'] } qw(params request results) };
 
 my $router = router {
-    match '/account', { method => 'GET' } => into {
+    match '/account' => as { method => 'GET' } => into {
         while (my $block = next_block) {
-            match $block->path, $block->conditions => to $block->params;
+            match $block->path => to $block->params;
         }
     };
 };
