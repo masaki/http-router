@@ -1,33 +1,24 @@
-use Test::Base;
-use Test::Deep;
-use t::Router;
+use strict;
+use Test::More tests => 5;
+use Test::HTTP::Router;
 use HTTP::Router::Declare;
 
-plan tests => 1 + 2*blocks;
-
-filters { map { $_ => ['eval'] } qw(request results) };
-
 my $router = router {
-    match '/{controller}/{action}/{id}.{format}';
+    match '/' => to { controller => 'Root', action => 'index' };
+
+    match '/home', { method => 'GET' }
+        => to { controller => 'Home', action => 'show' };
+    match '/date/{year}', { year => qr/^\d{4}$/ }
+        => to { controller => 'Date', action => 'by_year' };
+
     match '/{controller}/{action}/{id}';
 };
 
-is scalar @{[ $router->routes ]} => blocks;
+is scalar @{[ $router->routes ]} => 4;
 
-run {
-    my $block = shift;
-    my $req = create_request($block->request);
+path_ok $router, '/';
 
-    my $match = $router->match($req);
-    ok $match;
-    cmp_deeply $match->params => $block->results;
-};
+match_ok $router, '/home', { method => 'GET' };
+path_ok $router, '/date/2009';
 
-__END__
-===
---- request: { path => '/foo/bar/baz' }
---- results: { controller => 'foo', action => 'bar', id => 'baz' }
-
-===
---- request: { path => '/foo/bar/baz.html' }
---- results: { controller => 'foo', action => 'bar', id => 'baz', format => 'html' }
+path_ok $router, '/foo/bar/baz';

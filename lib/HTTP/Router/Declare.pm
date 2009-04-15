@@ -2,8 +2,8 @@ package HTTP::Router::Declare;
 
 use strict;
 use warnings;
-use Carp ();
-use Clone ();
+use Carp 'croak';
+use Storable;
 use HTTP::Router;
 use HTTP::Router::Route;
 
@@ -16,54 +16,22 @@ sub import {
     *{ $caller . '::router' } = \&routing;
     *{ $caller . '::routes' } = \&routing; # alias router
 
-    *{ $caller . '::as'   } = \&conditions;
-    *{ $caller . '::to'   } = \&params;
-    *{ $caller . '::into' } = \&block;
-
     # lexical bindings
-    *{ $caller . '::match'      } = sub { goto &match      };
-    *{ $caller . '::constraint' } = sub { goto &constraint };
-    *{ $caller . '::with'       } = sub { goto &with       };
+    *{ $caller . '::match' } = sub { goto &match };
+    *{ $caller . '::with'  } = sub { goto &with  };
+    *{ $caller . '::to'    } = sub ($) { goto &to   };
+    *{ $caller . '::then'  } = sub (&) { goto &then };
 }
-
-sub conditions ($) { conditions => $_[0] }
-sub params     ($) { params     => $_[0] }
-sub block      (&) { block      => $_[0] }
 
 sub _stub {
     my $name = shift;
-    return sub {
-        Carp::croak("Can't call $name() outside routing block");
-    };
+    return sub { croak "Can't call $name() outside routing block" };
 }
 
-*match      = _stub 'match';
-*constraint = _stub 'constraint';
-*with       = _stub 'with';
-
-sub _bind {
-    my ($router, $name) = @_;
-
-    return sub {
-        my %args = ($name, @_);
-
-        my $route = do {
-            package DB;
-            () = caller(1);
-            Clone::clone($DB::args[0]);
-        };
-        $route->append_path($args{path})               if exists $args{path};
-        $route->add_conditions(%{ $args{conditions} }) if exists $args{conditions};
-        $route->add_params(%{ $args{params} })         if exists $args{params};
-
-        if (exists $args{block}) {
-            $args{block}->($route);
-        }
-        else {
-            $router->add_route($route);
-        }
-    };
-}
+*match = _stub 'match';
+*with  = _stub 'with';
+*to    = _stub 'to';
+*then  = _stub 'then';
 
 sub routing (&) {
     my $block  = shift;
@@ -72,15 +40,46 @@ sub routing (&) {
     if ($block) {
         no warnings 'redefine';
 
-        local *match      = _bind $router, 'path';
-        local *constraint = _bind $router, 'conditions';
-        local *with       = _bind $router, 'params';
+        local *match = create_match($router);
+        local *with  = create_with($router);
+        local *to    = sub { params => $_[0] };
+        local *then  = sub { block  => $_[0] };
 
         my $root = HTTP::Router::Route->new;
         $block->($root);
     }
 
     return $router;
+}
+
+sub _map {
+    my ($router, %args) = @_;
+
+    my $route = do {
+        package DB;
+        () = caller(2);
+        Storable::dclone($DB::args[0]);
+    };
+    $route->append_path($args{path})               if exists $args{path};
+    $route->add_conditions(%{ $args{conditions} }) if exists $args{conditions};
+    $route->add_params(%{ $args{params} })         if exists $args{params};
+
+    return exists $args{block} ? $args{block}->($route) : $router->add_route($route);
+}
+
+sub create_match {
+    my $router = shift;
+    return sub {
+        my %args = ();
+        $args{path}       = shift unless ref $_[0];
+        $args{conditions} = shift if ref $_[0] eq 'HASH';
+        _map $router, %args, @_;
+    };
+}
+
+sub create_with {
+    my $router = shift;
+    return sub { _map $router, params => @_ };
 }
 
 1;
@@ -94,36 +93,41 @@ HTTP::Router::Declare
   use HTTP::Router::Declare;
 
   my $router = router {
-      # match (path), as (conditions), and to (params)
-      match '/'                                          => to { controller => 'Root', action => 'index' };
-      match '/home'        => as { method => 'GET' }     => to { controller => 'Home', action => 'show' };
-      match '/date/{year}' => as { year => qr/^\d{4}$/ } => to { controller => 'Date', action => 'by_year' };
- 
-      # match (path), to (params), and into (block)
-      match '/account' => to { controller => 'Account' } => into {
+      # path and params
+      match '/' => to { controller => 'Root', action => 'index' };
+  
+      # path, conditions, and params
+      match '/home', { method => 'GET' }
+          => to { controller => 'Home', action => 'show' };
+      match '/date/{year}', { year => qr/^\d{4}$/ }
+          => to { controller => 'Date', action => 'by_year' };
+  
+      # path, params, and nesting
+      match '/account' => to { controller => 'Account' } => then {
           match '/login'  => to { action => 'login' };
           match '/logout' => to { action => 'logout' };
       };
- 
-      # match (path) and into (block)
-      match '/account' => into {
-          match '/signup' => to { controller => 'Users',   action => 'register' };
+  
+      # path nesting
+      match '/account' => then {
+          match '/signup' => to { controller => 'Users', action => 'register' };
           match '/logout' => to { controller => 'Account', action => 'logout' };
       };
- 
-      # constraint (conditions) and into (block)
-      constraint { method => 'GET' } => into {
+  
+      # conditions nesting
+      match { method => 'GET' } => then {
           match '/search' => to { controller => 'Items', action => 'search' };
-          match '/tags'   => to { controller => 'Tags',  action => 'index' };
+          match '/tags'   => to { controller => 'Tags', action => 'index' };
       };
- 
-      # with (params) and into (block)
-      with { controller => 'Account' } => into {
+  
+      # params nesting
+      with { controller => 'Account' } => then {
           match '/login'  => to { action => 'login' };
           match '/logout' => to { action => 'logout' };
+          match '/signup' => to { action => 'signup' };
       };
- 
-      # match only (Mapper's register)
+  
+      # match only
       match '/{controller}/{action}/{id}.{format}';
       match '/{controller}/{action}/{id}';
   };
@@ -132,17 +136,13 @@ HTTP::Router::Declare
 
 =head2 router $block
 
-=head2 match $path
-
-=head2 as $conditions
+=head2 match $path?, $conditions?
 
 =head2 to $params
 
-=head2 constraint $conditions
-
 =head2 with $params
 
-=head2 into $block
+=head2 then $block
 
 =head1 AUTHOR
 
