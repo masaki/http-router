@@ -1,73 +1,29 @@
-use Test::Base;
-use Test::Deep;
-use t::Router;
-use HTTP::Router;
-use HTTP::Router::Resources;
+use strict;
+use Test::More tests => 15;
+use Test::HTTP::Router;
+use HTTP::Router::Declare;
 
-plan tests => 1 + 2*blocks;
-
-filters { map { $_ => ['eval'] } qw(request results) };
-
-my $router = HTTP::Router->define(sub {
-    $_->resource('Account');
-});
-
-is scalar @{[ $router->routes ]} => blocks;
-
-run {
-    my $block = shift;
-    my $req = create_request($block->request);
-
-    my $match = $router->match($req);
-    ok $match;
-    cmp_deeply $match->params => $block->results;
+my $router = router {
+    resource 'Account';
 };
 
-__END__
-=== create
---- request: { path => '/account', method => 'POST' }
---- results: { controller => 'Account', action => 'create' }
+is scalar @{[ $router->routes ]} => 14;
 
-=== formatted create
---- request: { path => '/account.html', method => 'POST' }
---- results: { controller => 'Account', action => 'create', format => 'html' }
+match_ok $router, '/account', { method => 'GET'    }, 'matched show';
+match_ok $router, '/account', { method => 'POST'   }, 'matched create';
+match_ok $router, '/account', { method => 'PUT'    }, 'matched update';
+match_ok $router, '/account', { method => 'DELETE' }, 'matched destroy';
 
-=== show
---- request: { path => '/account', method => 'GET' }
---- results: { controller => 'Account', action => 'show' }
+match_ok $router, '/account/new',    { method => 'GET' }, 'matched post';
+match_ok $router, '/account/edit',   { method => 'GET' }, 'matched edit';
+match_ok $router, '/account/delete', { method => 'GET' }, 'matched delete';
 
-=== formatted show
---- request: { path => '/account.html', method => 'GET' }
---- results: { controller => 'Account', action => 'show', format => 'html' }
+# with format
+match_ok $router, '/account.html', { method => 'GET'    }, 'matched formatted show';
+match_ok $router, '/account.html', { method => 'POST'   }, 'matched formatted create';
+match_ok $router, '/account.html', { method => 'PUT'    }, 'matched formatted update';
+match_ok $router, '/account.html', { method => 'DELETE' }, 'matched formatted destroy';
 
-=== update
---- request: { path => '/account', method => 'PUT' }
---- results: { controller => 'Account', action => 'update' }
-
-=== formatted update
---- request: { path => '/account.html', method => 'PUT' }
---- results: { controller => 'Account', action => 'update', format => 'html' }
-
-=== destroy
---- request: { path => '/account', method => 'DELETE' }
---- results: { controller => 'Account', action => 'destroy' }
-
-=== formatted destroy
---- request: { path => '/account.html', method => 'DELETE' }
---- results: { controller => 'Account', action => 'destroy', format => 'html' }
-
-=== new
---- request: { path => '/account/new', method => 'GET' }
---- results: { controller => 'Account', action => 'post' }
-
-=== formatted new
---- request: { path => '/account/new.html', method => 'GET' }
---- results: { controller => 'Account', action => 'post', format => 'html' }
-
-=== edit
---- request: { path => '/account/edit', method => 'GET' }
---- results: { controller => 'Account', action => 'edit' }
-
-=== formatted edit
---- request: { path => '/account/edit.html', method => 'GET' }
---- results: { controller => 'Account', action => 'edit', format => 'html' }
+match_ok $router, '/account/new.html',    { method => 'GET' }, 'matched formatted post';
+match_ok $router, '/account/edit.html',   { method => 'GET' }, 'matched formatted edit';
+match_ok $router, '/account/delete.html', { method => 'GET' }, 'matched formatted delete';
