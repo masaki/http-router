@@ -6,7 +6,10 @@ use Exporter 'import';
 use Test::Builder;
 use Test::MockObject;
 
-our @EXPORT = qw(path_ok match_ok);
+our @EXPORT = qw(
+    path_ok path_not_ok
+    match_ok match_not_ok
+);
 
 our $Test = Test::Builder->new;
 
@@ -19,16 +22,26 @@ sub request {
 
 sub path_ok {
     my ($router, $path, $message) = @_;
-
     my $req = request path => $path;
     $Test->ok($router->match($req) ? 1 : 0, $message);
 }
 
+sub path_not_ok {
+    my ($router, $path, $message) = @_;
+    my $req = request path => $path;
+    $Test->ok($router->match($req) ? 0 : 1, $message);
+}
+
 sub match_ok {
     my ($router, $path, $conditions, $message) = @_;
-
     my $req = request %{ $conditions || {} }, path => $path;
     $Test->ok($router->match($req) ? 1 : 0, $message);
+}
+
+sub match_not_ok {
+    my ($router, $path, $conditions, $message) = @_;
+    my $req = request %{ $conditions || {} }, path => $path;
+    $Test->ok($router->match($req) ? 0 : 1, $message);
 }
 
 1;
