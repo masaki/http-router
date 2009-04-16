@@ -2,8 +2,8 @@ package HTTP::Router;
 
 use 5.008_001;
 use Any::Moose;
-use Carp ();
-use HTTP::Router::Mapper;
+use Scalar::Util 1.14;
+use HTTP::Router::Route;
 
 our $VERSION = '0.01';
 
@@ -15,7 +15,7 @@ has 'routes' => (
     default    => sub { [] },
     auto_deref => 1,
     provides   => {
-        push  => 'add_route',
+        push  => 'add_raw_route',
         clear => 'clear_routes',
     },
 );
@@ -33,24 +33,13 @@ has 'named_routes' => (
     },
 );
 
-before 'define' => sub {
-    # $_[1] is $block
-    unless (ref $_[1] and ref $_[1] eq 'CODE') {
-        Carp::croak('usage: HTTP::Router->define(CODEREF)');
-    }
-};
-
 no Any::Moose;
 
-sub define {
-    my ($self, $block) = @_;
-
-    $self = $self->new unless ref $self;
-
-    local $_ = HTTP::Router::Mapper->new(router => $self);
-    $block->($_);
-
-    return $self;
+sub add_route {
+    my ($self, $thing, %args) = @_;
+    $thing = HTTP::Router::Route->new(path => $thing, %args)
+        unless Scalar::Util::blessed($thing);
+    $self->add_raw_route($thing);
 }
 
 sub reset {
@@ -91,31 +80,24 @@ HTTP::Router - Yet Another Path Router for HTTP
 
   use HTTP::Router;
 
-  my $router = HTTP::Router->define(sub {
-      $_->match('/')->to({ controller => 'Root', action => 'index' });
-      $_->match('/index.{format}')->to({ controller => 'Root', action => 'index' });
+  my $router = HTTP::Router->new;
 
-      $_->match('/archives/{year}/{month}', { year => qr/\d{4}/, month => qr/\d{2}/ })
-          ->to({ controller => 'Archive', action => 'by_month' });
+  my $route = HTTP::Router::Route->new(
+      path       => '/',
+      conditions => { method => 'GET' },
+      params     => { controller => 'Root', action => 'index' },
+  );
+  $router->add_route($route);
+  # or
+  $router->add_route('/' => (
+      conditions => { method => 'GET' },
+      params     => { controller => 'Root', action => 'index' },
+  ));
 
-      $_->match('/account/login', { method => ['GET', 'POST'] })
-          ->to({ controller => 'Account', action => 'login' });
-
-      $_->resources('users');
-
-      $_->resource('account');
-
-      $_->resources('members', sub {
-          $_->resources('articles');
-      });
-  });
-
-  # GET /index.html
+  # GET /
   my $match = $router->match($req);
-  $match->params;   # { controller => 'Root', action => 'index', format => 'html' }
-  $match->captures; # { format => 'html' }
-
-  $match->uri_for({ format => 'xml' }); # '/index.xml'
+  $match->params;  # { controller => 'Root', action => 'index' }
+  $match->uri_for; # '/'
 
 =head1 DESCRIPTION
 
@@ -125,17 +107,17 @@ HTTP::Router provides a Merb-like way of constructing routing tables.
 
 =head2 new
 
-=head2 define($code)
+=head2 add_route($route)
+
+=head2 add_route($path, %args)
+
+=head2 routes
 
 =head2 reset
 
 =head2 match($req)
 
 =head2 route_for($req)
-
-=head2 add_route
-
-=head2 add_named_route
 
 =head1 AUTHOR
 
@@ -150,8 +132,7 @@ it under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-L<HTTP::Router::Mapper>, L<HTTP::Router::Resources>,
-L<HTTP::Router::Route>, L<HTTP::Router::Match>,
+L<HTTP::Router::Declare>, L<HTTP::Router::Route>, L<HTTP::Router::Match>,
 
 L<MojoX::Routes>, L<http://merbivore.com/>,
 L<HTTPx::Dispatcher>, L<Path::Router>, L<Path::Dispatcher>
