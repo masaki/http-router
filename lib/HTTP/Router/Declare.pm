@@ -145,12 +145,9 @@ sub create_resource {
             $router->add_route($formatted_route);
 
             my $route = HTTP::Router::Route->new(
-                path       => "${path.{format}",
+                path       => $path,
                 conditions => $conditions,
                 params     => $params,
-                path       => "${prefix}${suffix}",
-                conditions => { method => ref $config ? $config->{method} : $config },
-                params     => { controller => $controller, action => $action },
             );
             $router->add_route($route);
         }
