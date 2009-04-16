@@ -8,6 +8,29 @@ use String::CamelCase ();
 use HTTP::Router;
 use HTTP::Router::Route;
 
+our @KEYWORDS = qw(match with to then resource resources);
+
+our $Resources = {
+    index   => { method => 'GET',    suffix => '' },
+    create  => { method => 'POST',   suffix => '' },
+    show    => { method => 'GET',    suffix => '' },
+    update  => { method => 'PUT',    suffix => '' },
+    destroy => { method => 'DELETE', suffix => '' },
+    post    => { method => 'GET',    suffix => '/new'    },
+    edit    => { method => 'GET',    suffix => '/edit'   },
+    delete  => { method => 'GET',    suffix => '/delete' },
+};
+
+our $Resource = {
+    create  => { method => 'POST',   suffix => '' },
+    show    => { method => 'GET',    suffix => '' },
+    update  => { method => 'PUT',    suffix => '' },
+    destroy => { method => 'DELETE', suffix => '' },
+    post    => { method => 'GET',    suffix => '/new'    },
+    edit    => { method => 'GET',    suffix => '/edit'   },
+    delete  => { method => 'GET',    suffix => '/delete' },
+};
+
 sub import {
     my $caller = caller;
 
@@ -32,12 +55,10 @@ sub _stub {
     return sub { Carp::croak("Can't call $name() outside routing block") };
 }
 
-*match     = _stub 'match';
-*with      = _stub 'with';
-*to        = _stub 'to';
-*then      = _stub 'then';
-*resource  = _stub 'resource';
-*resources = _stub 'resources';
+for my $keyword (@KEYWORDS) {
+    no strict 'refs';
+    *$keyword = _stub $keyword;
+}
 
 sub routing (&) {
     my $block  = shift;
@@ -102,29 +123,53 @@ sub create_resource {
         my $name  = shift;
         my $args  = shift || {};
 
-        my $base       = $args->{path}       || '/' . String::CamelCase::decamelize($name);
-        my $controller = $args->{controller} || $name;
+        my $prefix     = $args->{path_prefix} || '/' . String::CamelCase::decamelize($name);
+        my $controller = $args->{controller}  || $name;
 
-        my $members = { %{ $args->{member} || {} }, (
-            create  => { method => 'POST',   path => '' },
-            show    => { method => 'GET',    path => '' },
-            update  => { method => 'PUT',    path => '' },
-            destroy => { method => 'DELETE', path => '' },
-            post    => { method => 'GET',    path => '/new'    },
-            edit    => { method => 'GET',    path => '/edit'   },
-            delete  => { method => 'GET',    path => '/delete' },
-        )};
+        # FIXME: $args->{except}
+        my @keys = exists $args->{only} ? @{ $args->{only} } : keys %$Resource;
 
-        while (my ($action, $args) = each %$members) {
-            my $path       = $base . (ref $args eq 'HASH' ? $args->{path} : "/${action}");
-            my $conditions = { method => ref $args eq 'HASH' ? $args->{method} : $args };
+        for my $action (@keys) {
+            my $config = $Resource->{$action};
+            my $suffix = ref $config ? $config->{suffix} : "/$action";
+
+            my $path       = $prefix . $suffix;
+            my $conditions = { method => ref $config ? $config->{method} : $config };
             my $params     = { controller => $controller, action => $action };
-            # TODO: parentize
-            my $f = HTTP::Router::Route->new(path => "$path.{format}", conditions => $conditions, params => $params);
-            my $r = HTTP::Router::Route->new(path => $path,            conditions => $conditions, params => $params);
-            $router->add_route($f);
-            $router->add_route($r);
-        };
+
+            my $formatted_route = HTTP::Router::Route->new(
+                path       => "${path}.{format}",
+                conditions => $conditions,
+                params     => $params,
+            );
+            $router->add_route($formatted_route);
+
+            my $route = HTTP::Router::Route->new(
+                path       => "${path.{format}",
+                conditions => $conditions,
+                params     => $params,
+                path       => "${prefix}${suffix}",
+                conditions => { method => ref $config ? $config->{method} : $config },
+                params     => { controller => $controller, action => $action },
+            );
+            $router->add_route($route);
+        }
+
+        # FIXME: I should DRY
+        if (exists $args->{member}) {
+            my $members = $args->{member};
+            for my $action (keys %$members) {
+                my $config = $members->{$action};
+                my $suffix = ref $config ? $config->{suffix} : "/$action";
+
+                my $route = HTTP::Router::Route->new(
+                    path       => $prefix . $suffix,
+                    conditions => { method => ref $config ? $config->{method} : $config },
+                    params     => { controller => $controller, action => $action },
+                );
+                $router->add_route($route);
+            }
+        }
     };
 }
 
