@@ -23,25 +23,25 @@ sub request {
 sub path_ok {
     my ($router, $path, $message) = @_;
     my $req = request path => $path;
-    $Test->ok($router->match($req) ? 1 : 0, $message);
+    $Test->ok($router->match($req) ? 1 : 0, $message || "matched $path");
 }
 
 sub path_not_ok {
     my ($router, $path, $message) = @_;
     my $req = request path => $path;
-    $Test->ok($router->match($req) ? 0 : 1, $message);
+    $Test->ok($router->match($req) ? 0 : 1, $message || "not matched $path");
 }
 
 sub match_ok {
     my ($router, $path, $conditions, $message) = @_;
     my $req = request %{ $conditions || {} }, path => $path;
-    $Test->ok($router->match($req) ? 1 : 0, $message);
+    $Test->ok($router->match($req) ? 1 : 0, $message || "matched $path with conditions");
 }
 
 sub match_not_ok {
     my ($router, $path, $conditions, $message) = @_;
     my $req = request %{ $conditions || {} }, path => $path;
-    $Test->ok($router->match($req) ? 0 : 1, $message);
+    $Test->ok($router->match($req) ? 0 : 1, $message || "not matched $path with conditions");
 }
 
 1;
