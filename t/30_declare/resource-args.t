@@ -1,44 +1,26 @@
-use Test::Base;
-use Test::Deep;
-use t::Router;
-use HTTP::Router;
-use HTTP::Router::Resources;
+use strict;
+use Test::More tests => 7;
+use Test::HTTP::Router;
+use HTTP::Router::Declare;
 
-plan tests => 1 + 2*blocks;
-
-filters { map { $_ => ['eval'] } qw(request results) };
-
-my $router = HTTP::Router->define(sub {
-    $_->resource('admin', {
+my $router = router {
+    resource 'Admin', {
         controller => 'User::Admin',
         member     => { settings => 'GET' },
-    });
-});
+    };
 
-is scalar @{[ $router->routes ]} => 12 + 2;
+    resource 'Account', { except => [qw(post edit delete)] };
 
-run {
-    my $block = shift;
-    my $req = create_request($block->request);
-
-    my $match = $router->match($req);
-    ok $match;
-    cmp_deeply $match->params => $block->results;
+    resource 'User', { only => [qw(show update)] };
 };
 
-__END__
-=== show
---- request: { path => '/admin', method => 'GET' }
---- results: { controller => 'User::Admin', action => 'show' }
+is scalar @{[ $router->routes ]} => 28; # admin => 14+2, account => 8, user => 4
 
-=== formatted show
---- request: { path => '/admin.html', method => 'GET' }
---- results: { controller => 'User::Admin', action => 'show', format => 'html' }
+match_ok $router, '/admin/settings',      { method => 'GET' }, 'matched user defined action';
+match_ok $router, '/admim/settings.html', { method => 'GET' }, 'matched user defined formatted action';
 
-=== settings
---- request: { path => '/admin/settings', method => 'GET' }
---- results: { controller => 'User::Admin', action => 'settings' }
+match_not_ok $router, '/account/edit', { method => 'GET' };
 
-=== formatted settings
---- request: { path => '/admin/settings.html', method => 'GET' }
---- results: { controller => 'User::Admin', action => 'settings', format => 'html' }
+match_ok $router, '/user/foobar', { method => 'GET' };
+match_not_ok $router, '/user', { method => 'GET' };
+match_not_ok $router, '/user/foobar', { method => 'DELETE' };
