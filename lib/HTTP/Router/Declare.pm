@@ -2,34 +2,13 @@ package HTTP::Router::Declare;
 
 use strict;
 use warnings;
-use Carp ();
-use Storable ();
-use String::CamelCase ();
+use Carp 'croak';
+use Storable 'dclone';
+use Devel::Caller::Perl 'called_args';
+use String::CamelCase 'decamelize';
+use Lingua::EN::Inflect::Number 'to_S';
 use HTTP::Router;
 use HTTP::Router::Route;
-
-our @KEYWORDS = qw(match with to then resource resources);
-
-our $Resources = {
-    index   => { method => 'GET',    suffix => '' },
-    create  => { method => 'POST',   suffix => '' },
-    show    => { method => 'GET',    suffix => '' },
-    update  => { method => 'PUT',    suffix => '' },
-    destroy => { method => 'DELETE', suffix => '' },
-    post    => { method => 'GET',    suffix => '/new'    },
-    edit    => { method => 'GET',    suffix => '/edit'   },
-    delete  => { method => 'GET',    suffix => '/delete' },
-};
-
-our $Resource = {
-    create  => { method => 'POST',   suffix => '' },
-    show    => { method => 'GET',    suffix => '' },
-    update  => { method => 'PUT',    suffix => '' },
-    destroy => { method => 'DELETE', suffix => '' },
-    post    => { method => 'GET',    suffix => '/new'    },
-    edit    => { method => 'GET',    suffix => '/edit'   },
-    delete  => { method => 'GET',    suffix => '/delete' },
-};
 
 sub import {
     my $caller = caller;
@@ -52,12 +31,15 @@ sub import {
 
 sub _stub {
     my $name = shift;
-    return sub { Carp::croak("Can't call $name() outside routing block") };
+    return sub { croak "Can't call $name() outside routing block" };
 }
 
-for my $keyword (@KEYWORDS) {
-    no strict 'refs';
-    *$keyword = _stub $keyword;
+{
+    my @Declarations = qw(match with to then resource resources);
+    for my $keyword (@Declarations) {
+        no strict 'refs';
+        *$keyword = _stub $keyword;
+    }
 }
 
 sub routing (&) {
@@ -85,11 +67,7 @@ sub routing (&) {
 sub _map {
     my ($router, $block, %args) = @_;
 
-    my $route = do {
-        package DB;
-        () = caller(2);
-        Storable::dclone($DB::args[0]);
-    };
+    my $route = dclone called_args(1)->[0];
     $route->append_path($args{path})               if exists $args{path};
     $route->add_conditions(%{ $args{conditions} }) if exists $args{conditions};
     $route->add_params(%{ $args{params} })         if exists $args{params};
@@ -116,26 +94,54 @@ sub create_with {
     };
 }
 
-sub create_resource {
-    my $router = shift;
-    return sub {
-        my $block = ref $_[-1] eq 'CODE' ? pop : undef;
-        my $name  = shift;
-        my $args  = shift || {};
+{
+    my $Resource = {
+        collection => {},
+        member => {
+            create  => { method => 'POST',   suffix => '',        action => 'create'  },
+            show    => { method => 'GET',    suffix => '',        action => 'show'    },
+            update  => { method => 'PUT',    suffix => '',        action => 'update'  },
+            destroy => { method => 'DELETE', suffix => '',        action => 'destroy' },
+            new     => { method => 'GET',    suffix => '/new',    action => 'post'    },
+            edit    => { method => 'GET',    suffix => '/edit',   action => 'edit'    },
+            delete  => { method => 'GET',    suffix => '/delete', action => 'delete'  },
+        },
+    };
+    sub _resource_collection { $Resource->{collection} }
+    sub _resource_member     { $Resource->{member}     }
 
-        my $prefix     = $args->{path_prefix} || '/' . String::CamelCase::decamelize($name);
-        my $controller = $args->{controller}  || $name;
+    my $Resources = {
+        collection => {
+            index  => { method => 'GET',  suffix => '',     action => 'index'  },
+            create => { method => 'POST', suffix => '',     action => 'create' },
+            new    => { method => 'GET',  suffix => '/new', action => 'post'   },
+        },
+        member => {
+            show    => { method => 'GET',    suffix => '',        action => 'show'    },
+            update  => { method => 'PUT',    suffix => '',        action => 'update'  },
+            destroy => { method => 'DELETE', suffix => '',        action => 'destroy' },
+            edit    => { method => 'GET',    suffix => '/edit',   action => 'edit'    },
+            delete  => { method => 'GET',    suffix => '/delete', action => 'delete'  },
+        },
+    };
+    sub _resources_collection { $Resources->{collection} }
+    sub _resources_member     { $Resources->{member}     }
+}
 
-        # FIXME: $args->{except}
-        my @keys = exists $args->{only} ? @{ $args->{only} } : keys %$Resource;
+sub _map_resources {
+    my ($router, $args) = @_;
 
-        for my $action (@keys) {
-            my $config = $Resource->{$action};
-            my $suffix = ref $config ? $config->{suffix} : "/$action";
+    for my $symbol (qw'collection member') {
+        while (my ($key, $config) = each %{ $args->{$symbol} }) {
+            $config = { method => $config } unless ref $config;
+
+            my $action = exists $config->{action} ? $config->{action} : $key;
+            my $suffix = exists $config->{suffix} ? $config->{suffix} : "/$action";
+            my $prefix = $args->{"${symbol}_prefix"};
 
             my $path       = $prefix . $suffix;
-            my $conditions = { method => ref $config ? $config->{method} : $config };
-            my $params     = { controller => $controller, action => $action };
+            my $conditions = { method => $config->{method} };
+            my $params     = { controller => $args->{controller}, action => $action };
 
             my $formatted_route = HTTP::Router::Route->new(
                 path       => "${path}.{format}",
@@ -151,22 +157,65 @@ sub create_resource {
             );
             $router->add_route($route);
         }
+    }
+}
 
-        # FIXME: I should DRY
-        if (exists $args->{member}) {
-            my $members = $args->{member};
-            for my $action (keys %$members) {
-                my $config = $members->{$action};
-                my $suffix = ref $config ? $config->{suffix} : "/$action";
+sub _create_resources {
+    my ($router, $name, $block, $args) = @_;
 
-                my $route = HTTP::Router::Route->new(
-                    path       => $prefix . $suffix,
-                    conditions => { method => ref $config ? $config->{method} : $config },
-                    params     => { controller => $controller, action => $action },
-                );
-                $router->add_route($route);
-            }
+    my %only   = map { $_ => 1 } @{ $args->{only}   || [] };
+    my %except = map { $_ => 1 } @{ $args->{except} || [] };
+
+    for my $symbol (qw'collection member') {
+        my $extra = delete $args->{$symbol}; # save extra maps
+
+        no strict 'refs';
+        my $default = exists $args->{singleton} ? &{"_resource_$symbol"}() : &{"_resources_$symbol"}();
+
+        if (exists $args->{only}) {
+            $args->{$symbol} = {
+                map { $_ => $default->{$_} } grep { $only{$_} } keys %$default
+            };
         }
+        elsif (exists $args->{except}) {
+            $args->{$symbol} = {
+                map { $_ => $default->{$_} } grep { !$except{$_} } keys %$default
+            };
+        }
+        else {
+            $args->{$symbol} = $default;
+        }
+
+        $args->{$symbol} = { %{ $args->{$symbol} }, %$extra } if defined $extra;
+    }
+
+    my $decamelized = decamelize $name;
+    my $singular    = to_S $decamelized;
+
+    $args->{collection_prefix} = called_args(1)->[0]->path .
+        (exists $args->{path_prefix} ? $args->{path_prefix} : "/$decamelized");
+    $args->{member_prefix} = $args->{collection_prefix} .
+        (exists $args->{singleton} ? '' : "/{${singular}_id}");
+
+    $args->{controller} ||= $name;
+
+    _map_resources($router, $args);
+
+    if (defined $block) {
+        my $route = HTTP::Router::Route->new(path => $args->{member_prefix});
+        $block->($route);
+    }
+}
+
+sub create_resource {
+    my $router = shift;
+    return sub {
+        my $block = ref $_[-1] eq 'CODE' ? pop : undef;
+        my $name  = shift;
+        my $args  = shift || {};
+
+        $args->{singleton} = 1;
+        _create_resources $router, $name, $block, $args;
     };
 }
 
