@@ -6,8 +6,6 @@ use HTTP::Router;
 
 requires 'routes';
 
-no Any::Moose '::Role';
-
 sub show_table {
     my $table = $_[0]->routing_table->draw;
     print "$table\n";
@@ -38,9 +36,10 @@ sub routing_table {
     return $table;
 }
 
-# apply roles
-__PACKAGE__->meta->apply( HTTP::Router->meta );
+# apply self to HTTP::Router
+__PACKAGE__->meta->apply(HTTP::Router->meta);
 
+no Any::Moose '::Role';
 1;
 
 =head1 NAME

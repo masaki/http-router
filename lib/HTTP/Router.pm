@@ -3,7 +3,8 @@ package HTTP::Router;
 use 5.008_001;
 use Any::Moose;
 use Any::Moose 'X::AttributeHelpers';
-use Scalar::Util 1.14;
+use Carp 'carp';
+use Hash::AsObject;
 use HTTP::Router::Route;
 
 our $VERSION = '0.01';
@@ -13,7 +14,7 @@ has 'routes' => (
     isa        => 'ArrayRef',
     metaclass  => 'Collection::Array',
     lazy       => 1,
-    default    => sub { [] },
+    builder    => '_build_routes',
     auto_deref => 1,
     provides   => {
         push  => 'add_raw_route',
@@ -26,7 +27,7 @@ has 'named_routes' => (
     isa        => 'HashRef',
     metaclass  => 'Collection::Hash',
     lazy       => 1,
-    default    => sub { +{} },
+    builder    => '_build_named_routes',
     auto_deref => 1,
     provides   => {
         set   => 'add_named_route',
@@ -34,12 +35,19 @@ has 'named_routes' => (
     },
 );
 
-no Any::Moose;
+has 'matcher' => (
+    is        => 'rw',
+    isa       => 'CodeRef',
+    predicate => 'compiled',
+    clearer   => 'clear_matcher',
+);
+
+sub _build_routes       { [] }
+sub _build_named_routes { {} }
 
 sub add_route {
     my ($self, $thing, %args) = @_;
-    $thing = HTTP::Router::Route->new(path => $thing, %args)
-        unless Scalar::Util::blessed($thing);
+    $thing = HTTP::Router::Route->new(path => $thing, %args) unless blessed $thing;
     $self->add_raw_route($thing);
 }
 
@@ -47,11 +55,30 @@ sub reset {
     my $self = shift;
     $self->clear_routes;
     $self->clear_named_routes;
+    $self->clear_matcher;
     return $self;
 }
 
+sub compile {
+    my $self = shift;
+
+    $self->clear_matcher if $self->compiled;
+
+    #my $code;
+    #for my $route ($self->routes) {
+    #    $code .= $route->generate_match;
+    #}
+    my $code = sub {}; # mock
+
+    my $matcher = eval $code;
+    $@ ? carp $@ : $self->matcher($matcher);
+
+    $self;
+}
+
 sub match {
-    my ($self, $req) = @_;
+    my $self = shift;
+    my $req  = blessed $_[0] ? $_[0] : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
 
     for my $route ($self->routes) {
         next unless my $match = $route->match($req);
@@ -62,15 +89,16 @@ sub match {
 }
 
 sub route_for {
-    my ($self, $req) = @_;
+    my $self = shift;
 
-    if (my $match = $self->match($req)) {
+    if (my $match = $self->match(@_)) {
         return $match->route;
     }
 
     return;
 }
 
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 =head1 NAME

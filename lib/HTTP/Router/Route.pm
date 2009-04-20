@@ -47,8 +47,6 @@ has 'templates' => (
     handles => ['variables'],
 );
 
-no Any::Moose;
-
 sub match {
     my ($self, $req) = @_;
     return unless blessed $req and $req->can('path');
@@ -132,6 +130,7 @@ sub validate {
     return $input eq $expected;
 }
 
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 =for stopwords params
