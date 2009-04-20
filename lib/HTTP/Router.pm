@@ -2,6 +2,7 @@ package HTTP::Router;
 
 use 5.008_001;
 use Any::Moose;
+use Any::Moose 'X::AttributeHelpers';
 use Scalar::Util 1.14;
 use HTTP::Router::Route;
 
