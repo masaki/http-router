@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+
 use strict;
 use warnings;
 use Benchmark qw(:hireswallclock timethese);
@@ -14,20 +15,6 @@ my $router = router {
     resource 'Admin';
 };
 
-my $path_request       = request(path => '/');
-my $conditions_request = request(path => '/account/login', method => 'POST');
-my $validate_request   = request(path => '/archives/2009');
-my $resources_request  = request(path => '/users/new', method => 'GET');
-my $resource_request   = request(path => '/admin/edit', method => 'GET');
-
-timethese(10000, {
-    path       => \&_path,
-    conditions => \&_conditions,
-    validate   => \&_validate,
-    resources  => \&_resources,
-    resource   => \&_resource,
-});
-
 sub request {
     my $r = Test::MockObject->new;
     my %p = @_;
@@ -37,8 +24,16 @@ sub request {
     $r;
 }
 
-sub _path       { $router->match($path_request)       }
-sub _conditions { $router->match($conditions_request) }
-sub _validate   { $router->match($validate_request)   }
-sub _resources  { $router->match($resources_request)  }
-sub _resource   { $router->match($resource_request)   }
+my $path_request       = request(path => '/');
+my $conditions_request = request(path => '/account/login', method => 'POST');
+my $validate_request   = request(path => '/archives/2009');
+my $resources_request  = request(path => '/users/new', method => 'GET');
+my $resource_request   = request(path => '/admin/edit', method => 'GET');
+
+timethese(10000, {
+    path       => sub { $router->match($path_request)       },
+    conditions => sub { $router->match($conditions_request) },
+    validate   => sub { $router->match($validate_request)   },
+    resources  => sub { $router->match($resources_request)  },
+    resource   => sub { $router->match($resource_request)   },
+});

@@ -3,7 +3,6 @@ package HTTP::Router;
 use 5.008_001;
 use Any::Moose;
 use Any::Moose 'X::AttributeHelpers';
-use Carp 'carp';
 use Hash::AsObject;
 use HTTP::Router::Route;
 
@@ -22,28 +21,25 @@ has 'routes' => (
     },
 );
 
-has 'named_routes' => (
-    is         => 'ro',
-    isa        => 'HashRef',
-    metaclass  => 'Collection::Hash',
-    lazy       => 1,
-    builder    => '_build_named_routes',
-    auto_deref => 1,
-    provides   => {
-        set   => 'add_named_route',
-        clear => 'clear_named_routes',
-    },
+has 'use_inline_match' => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0, # TODO: set to 1
+    trigger => sub { $_[0]->clear_inline_matcher },
 );
 
-has 'matcher' => (
-    is        => 'rw',
-    isa       => 'CodeRef',
-    predicate => 'compiled',
-    clearer   => 'clear_matcher',
+has 'inline_matcher' => (
+    is         => 'rw',
+    isa        => 'CodeRef',
+    lazy_build => 1,
 );
 
-sub _build_routes       { [] }
-sub _build_named_routes { {} }
+sub _build_routes { [] }
+
+sub _build_inline_matcher {
+    # TODO: not implemented yet
+    sub {};
+}
 
 sub add_route {
     my ($self, $thing, %args) = @_;
@@ -54,25 +50,7 @@ sub add_route {
 sub reset {
     my $self = shift;
     $self->clear_routes;
-    $self->clear_named_routes;
-    $self->clear_matcher;
-    return $self;
-}
-
-sub compile {
-    my $self = shift;
-
-    $self->clear_matcher if $self->compiled;
-
-    #my $code;
-    #for my $route ($self->routes) {
-    #    $code .= $route->generate_match;
-    #}
-    my $code = sub {}; # mock
-
-    my $matcher = eval $code;
-    $@ ? carp $@ : $self->matcher($matcher);
-
+    $self->clear_inline_matcher;
     $self;
 }
 
@@ -80,12 +58,17 @@ sub match {
     my $self = shift;
     my $req  = blessed $_[0] ? $_[0] : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
 
-    for my $route ($self->routes) {
-        next unless my $match = $route->match($req);
-        return $match;
+    if ($self->use_inline_match) {
+        $self->inline_matcher->($req);
     }
+    else {
+        for my $route ($self->routes) {
+            next unless my $match = $route->match($req);
+            return $match;
+        }
 
-    return;
+        return;
+    }
 }
 
 sub route_for {
