@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use HTTP::Router;
+use HTTP::Router::Declare;
 use Getopt::Long;
 use Pod::Usage;
 use Test::MockObject;
@@ -39,11 +39,7 @@ sub create_request {
 }
 
 sub create_router {
-    HTTP::Router->define(
-        sub {
-            $_->match('/')->to( { controller => 'Root', action => 'index' } );
-        }
-    );
+    router {
+        match '/' => to { controller => 'Root', action => 'index' };
+    };
 }
-
-

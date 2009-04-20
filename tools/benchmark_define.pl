@@ -4,66 +4,50 @@ use warnings;
 use Benchmark qw(:hireswallclock timethese);
 use Test::MockObject;
 use FindBin::libs;
-use HTTP::Router;
+use HTTP::Router::Declare;
 
 timethese(10000, {
-    match       => \&match,
-    match_block => \&match_block,
-    to_block    => \&to_block,
-    with        => \&with,
+    match_to   => \&_match_to,
+    path_then  => \&_path_then,
+    conds_then => \&_conds_then,
+    to_then    => \&_to_then,
+    with       => \&_with,
 });
 
-sub req {
-    my $params = ref $_[0] ? shift : { @_ };
-    my $req = Test::MockObject->new;
-    while (my ($name, $value) = each %$params) {
-        $req->set_always($name, $value);
-    }
-    $req;
+sub _match_to {
+    router {
+        match '/' => to { controller => 'Root', action => 'index' };
+    };
 }
 
-sub match {
-    my $router = HTTP::Router->define(sub {
-        $_[0]->match('/')->to({ action => 'index' });
-        $_[0]->match('/{year}', { year => qr/^\d{4}$/ })->to({ action => 'year' });
-    });
-
-    $router->match(req(path => '/'));
-    $router->match(req(path => '/2009'));
+sub _path_then {
+    router {
+        match '/account' => then {
+            match '/login', { method => 'POST' } => to { controller => 'Account', action => 'login'  };
+        };
+    };
 }
 
-sub match_block {
-    my $router = HTTP::Router->define(sub {
-        $_[0]->match('/account', sub {
-            $_[0]->match('/login',  { method => 'POST' })->to({ action => 'login'  });
-            $_[0]->match('/logout', { method => 'GET'  })->to({ action => 'logout' });
-        });
-    });
-
-    $router->match(req(path => '/account/login',  method => 'POST'));
-    $router->match(req(path => '/account/logout', method => 'GET' ));
+sub _conds_then {
+    router {
+        match { method => 'POST' } => then {
+            match '/account/login' => to { controller => 'Account', action => 'login'  };
+        };
+    };
 }
 
-sub to_block {
-    my $router = HTTP::Router->define(sub {
-        $_[0]->match('/account')->to({ controller => 'account' }, sub {
-            $_[0]->match('/login',  { method => 'POST' })->to({ action => 'login'  });
-            $_[0]->match('/logout', { method => 'GET'  })->to({ action => 'logout' });
-        });
-    });
-
-    $router->match(req(path => '/account/login',  method => 'POST'));
-    $router->match(req(path => '/account/logout', method => 'GET' ));
+sub _to_then {
+    router {
+        match '/account' => to { controller => 'account' } => then {
+            match '/login', { method => 'POST' } => to { action => 'login'  };
+        };
+    };
 }
 
-sub with {
-    my $router = HTTP::Router->define(sub {
-        $_[0]->with({ controller => '/account' }, sub {
-            $_[0]->match('/login',  { method => 'POST' })->to({ action => 'login'  });
-            $_[0]->match('/logout', { method => 'GET'  })->to({ action => 'logout' });
-        });
-    });
-
-    $router->match(req(path => '/login',  method => 'POST'));
-    $router->match(req(path => '/logout', method => 'GET' ));
+sub _with {
+    router {
+        with { controller => '/account' } => then {
+            match '/account/login', { method => 'POST' } => to { action => 'login'  };
+        };
+    };
 }
