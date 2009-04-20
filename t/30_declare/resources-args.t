@@ -1,61 +1,27 @@
-use Test::Base;
-use Test::Deep;
-use t::Router;
-use HTTP::Router;
-use HTTP::Router::Resources;
+use strict;
+use Test::More tests => 8;
+use Test::HTTP::Router;
+use HTTP::Router::Declare;
 
-plan tests => 1 + 2*blocks;
-
-filters { map { $_ => ['eval'] } qw(request results) };
-
-my $router = HTTP::Router->define(sub {
-    $_->resources('members', {
-        controller => 'Users',
-        collection => { login => 'POST', logout => ['GET', 'POST'] },
+my $router = router {
+    resources 'Users', {
+        collection => { recent   => 'GET' },
         member     => { settings => 'GET' },
-    });
-});
+    };
 
-is scalar @{[ $router->routes ]} => 14 + 6;
-
-run {
-    my $block = shift;
-    my $req = create_request($block->request);
-
-    my $match = $router->match($req);
-    ok $match;
-    cmp_deeply $match->params => $block->results;
+    resources 'Articles', { except => [qw(edit delete)] };
+    resources 'Entries',  { only => [qw(show update)] };
 };
 
-__END__
-=== index
---- request: { path => '/members', method => 'GET' }
---- results: { controller => 'Users', action => 'index' }
+is scalar @{[ $router->routes ]} => 36; # users => 20, articles => 12, entries => 4
 
-=== formatted index
---- request: { path => '/members.html', method => 'GET' }
---- results: { controller => 'Users', action => 'index', format => 'html' }
+match_ok $router, '/users/recent',      { method => 'GET' }, 'matched user defined action';
+match_ok $router, '/users/recent.html', { method => 'GET' }, 'matched user defined formatted action';
 
-=== login
---- request: { path => '/members/login', method => 'POST' }
---- results: { controller => 'Users', action => 'login' }
+match_ok $router, '/users/1/settings',      { method => 'GET' }, 'matched user defined action';
+match_ok $router, '/users/1/settings.html', { method => 'GET' }, 'matched user defined formatted action';
 
-=== formatted login
---- request: { path => '/members/login.html', method => 'POST' }
---- results: { controller => 'Users', action => 'login', format => 'html' }
+match_not_ok $router, '/articles/1/edit', { method => 'GET' }, 'not matched excepted action';
 
-=== logout
---- request: { path => '/members/logout', method => 'GET' }
---- results: { controller => 'Users', action => 'logout' }
-
-=== formatted logout
---- request: { path => '/members/logout.html', method => 'GET' }
---- results: { controller => 'Users', action => 'logout', format => 'html' }
-
-=== settings
---- request: { path => '/members/10/settings', method => 'GET' }
---- results: { controller => 'Users', action => 'settings', member_id => 10 }
-
-=== formatted settings
---- request: { path => '/members/10/settings.html', method => 'GET' }
---- results: { controller => 'Users', action => 'settings', member_id => 10, format => 'html' }
+match_ok     $router, '/entries/1', { method => 'GET' },    'matched only action';
+match_not_ok $router, '/entries/1', { method => 'DELETE' }, 'not matched !only action';

@@ -1,81 +1,35 @@
-use Test::Base;
-use Test::Deep;
-use t::Router;
-use HTTP::Router;
-use HTTP::Router::Resources;
+use strict;
+use Test::More tests => 17;
+use Test::HTTP::Router;
+use HTTP::Router::Declare;
 
-plan tests => 1 + 2*blocks;
-
-filters { map { $_ => ['eval'] } qw(request results) };
-
-my $router = HTTP::Router->define(sub {
-    $_->resources('Users');
-});
-
-is scalar @{[ $router->routes ]} => blocks;
-
-run {
-    my $block = shift;
-    my $req = create_request($block->request);
-
-    my $match = $router->match($req);
-    ok $match;
-    cmp_deeply $match->params => $block->results;
+my $router = router {
+    resources 'Users';
 };
 
-__END__
-=== index
---- request: { path => '/users', method => 'GET' }
---- results: { controller => 'Users', action => 'index' }
+is scalar @{[ $router->routes ]} => 16;
 
-=== formatted index
---- request: { path => '/users.html', method => 'GET' }
---- results: { controller => 'Users', action => 'index', format => 'html' }
+match_ok $router, '/users', { method => 'GET'  }, 'matched index';
+match_ok $router, '/users', { method => 'POST' }, 'matched create';
 
-=== new
---- request: { path => '/users/new', method => 'GET' }
---- results: { controller => 'Users', action => 'post' }
+match_ok $router, '/users/new', { method => 'GET' }, 'matched new';
 
-=== formatted new
---- request: { path => '/users/new.html', method => 'GET' }
---- results: { controller => 'Users', action => 'post', format => 'html' }
+match_ok $router, '/users/1', { method => 'GET'    }, 'matched show';
+match_ok $router, '/users/1', { method => 'PUT'    }, 'matched update';
+match_ok $router, '/users/1', { method => 'DELETE' }, 'matched destroy';
 
-=== create
---- request: { path => '/users', method => 'POST' }
---- results: { controller => 'Users', action => 'create' }
+match_ok $router, '/users/1/edit',   { method => 'GET' }, 'matched edit';
+match_ok $router, '/users/1/delete', { method => 'GET' }, 'matched delete';
 
-=== formatted create
---- request: { path => '/users.html', method => 'POST' }
---- results: { controller => 'Users', action => 'create', format => 'html' }
+# with format
+match_ok $router, '/users.html', { method => 'GET'  }, 'matched formatted index';
+match_ok $router, '/users.html', { method => 'POST' }, 'matched formatted create';
 
-=== show
---- request: { path => '/users/10', method => 'GET' }
---- results: { controller => 'Users', action => 'show', user_id => 10 }
+match_ok $router, '/users/new.html', { method => 'GET' }, 'matched formatted new';
 
-=== formatted show
---- request: { path => '/users/10.html', method => 'GET' }
---- results: { controller => 'Users', action => 'show', user_id => 10, format => 'html' }
+match_ok $router, '/users/1.html', { method => 'GET'    }, 'matched formatted show';
+match_ok $router, '/users/1.html', { method => 'PUT'    }, 'matched formatted update';
+match_ok $router, '/users/1.html', { method => 'DELETE' }, 'matched formatted destroy';
 
-=== edit
---- request: { path => '/users/10/edit', method => 'GET' }
---- results: { controller => 'Users', action => 'edit', user_id => 10 }
-
-=== formatted edit
---- request: { path => '/users/10/edit.html', method => 'GET' }
---- results: { controller => 'Users', action => 'edit', user_id => 10, format => 'html' }
-
-=== update
---- request: { path => '/users/10', method => 'PUT' }
---- results: { controller => 'Users', action => 'update', user_id => 10 }
-
-=== formatted update
---- request: { path => '/users/10.html', method => 'PUT' }
---- results: { controller => 'Users', action => 'update', user_id => 10, format => 'html' }
-
-=== destroy
---- request: { path => '/users/10', method => 'DELETE' }
---- results: { controller => 'Users', action => 'destroy', user_id => 10 }
-
-=== formatted destroy
---- request: { path => '/users/10.html', method => 'DELETE' }
---- results: { controller => 'Users', action => 'destroy', user_id => 10, format => 'html' }
+match_ok $router, '/users/1/edit.html',   { method => 'GET' }, 'matched formatted edit';
+match_ok $router, '/users/1/delete.html', { method => 'GET' }, 'matched formatted delete';

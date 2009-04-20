@@ -213,7 +213,6 @@ sub create_resource {
         my $block = ref $_[-1] eq 'CODE' ? pop : undef;
         my $name  = shift;
         my $args  = shift || {};
-
         $args->{singleton} = 1;
         _create_resources $router, $name, $block, $args;
     };
@@ -221,8 +220,12 @@ sub create_resource {
 
 sub create_resources {
     my $router = shift;
-    # TODO: not implemented yet
-    return sub {};
+    return sub {
+        my $block = ref $_[-1] eq 'CODE' ? pop : undef;
+        my $name  = shift;
+        my $args  = shift || {};
+        _create_resources $router, $name, $block, $args;
+    };
 }
 
 1;
