@@ -28,12 +28,13 @@ my $path_request       = request(path => '/');
 my $conditions_request = request(path => '/account/login', method => 'POST');
 my $validate_request   = request(path => '/archives/2009');
 my $resources_request  = request(path => '/users/new', method => 'GET');
-my $resource_request   = request(path => '/admin/edit', method => 'GET');
+my $var_resources      = request(path => '/users/masaki', method => 'GET');
 
 timethese(10000, {
-    path       => sub { $router->match($path_request)       },
-    conditions => sub { $router->match($conditions_request) },
-    validate   => sub { $router->match($validate_request)   },
-    resources  => sub { $router->match($resources_request)  },
-    resource   => sub { $router->match($resource_request)   },
+    path          => sub { $router->match($path_request)       },
+    conditions    => sub { $router->match($conditions_request) },
+    validate      => sub { $router->match($validate_request)   },
+    resources     => sub { $router->match($resources_request)  },
+    resource      => sub { $router->match($resource_request)   },
+    var_resources => sub { $router->match($var_resources) },
 });

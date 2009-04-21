@@ -25,27 +25,27 @@ sub to_request {
 sub path_ok {
     my ($router, $path, $message) = @_;
     my $req = to_request(path => $path);
-    $Test->ok($router->match($req) ? 1 : 0, $message || "matched $path");
+    $Test->ok(my $match = $router->match($req) ? 1 : 0, $message || "matched $path");
 }
 
 sub path_not_ok {
     my ($router, $path, $message) = @_;
     my $req = to_request(path => $path);
-    $Test->ok($router->match($req) ? 0 : 1, $message || "not matched $path");
+    $Test->ok(my $match = $router->match($req) ? 0 : 1, $message || "not matched $path");
 }
 
 sub match_ok {
     my $router  = shift;
     my $message = (@_ == 3 || @_ == 2 and not ref $_[-1]) ? pop : undef;
     my $req     = ref $_[0] ? $_[0] : to_request(%{ $_[1] || {} }, path => $_[0]);
-    $Test->ok($router->match($req) ? 1 : 0, $message || "matched @{[$req->path]} with conditions");
+    $Test->ok(my $match = $router->match($req) ? 1 : 0, $message || "matched @{[$req->path]} with conditions");
 }
 
 sub match_not_ok {
     my $router  = shift;
     my $message = (@_ == 3 || @_ == 2 and not ref $_[-1]) ? pop : undef;
     my $req     = ref $_[0] ? $_[0] : to_request(%{ $_[1] || {} }, path => $_[0]);
-    $Test->ok($router->match($req) ? 0 : 1, $message || "not matched @{[$req->path]} with conditions");
+    $Test->ok(my $match = $router->match($req) ? 0 : 1, $message || "not matched @{[$req->path]} with conditions");
 }
 
 sub params_ok {

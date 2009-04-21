@@ -4,6 +4,7 @@ use 5.008_001;
 use Any::Moose;
 use Any::Moose 'X::AttributeHelpers';
 use Hash::AsObject;
+use List::MoreUtils 'part';
 use HTTP::Router::Route;
 
 our $VERSION = '0.01';
@@ -62,15 +63,27 @@ sub match {
         $self->inline_matcher->($req);
     }
     else {
-        my $path   = $req->path;
-        my $parts  = $path =~ tr!/!/!;
-        my @routes = grep { $_->parts <= $parts } $self->routes;
+        my $path = $req->path;
+
+        my ($path_routes, $capture_routes) = do {
+            my $parts = $path =~ tr!/!/!;
+            part { $_->templates->expansions } grep { $_->parts <= $parts } $self->routes;
+        };
+
+        # path
+        for my $route (@$path_routes) {
+            my $match = $route->match($req) or next;
+            return wantarray ? ($match) : $match; # return if found path route
+        }
+
+        # capture
         my @match;
-        for my $route (@routes) {
+        for my $route (@$capture_routes) {
             my $match = $route->match($req) or next;
             push @match, $match;
         }
         if (@match > 1) {
+            # TODO: sort
         }
         return wantarray ? @match : $match[0];
     }
