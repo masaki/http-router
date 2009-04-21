@@ -62,12 +62,17 @@ sub match {
         $self->inline_matcher->($req);
     }
     else {
-        for my $route ($self->routes) {
-            next unless my $match = $route->match($req);
-            return $match;
+        my $path   = $req->path;
+        my $parts  = $path =~ tr!/!/!;
+        my @routes = grep { $_->parts <= $parts } $self->routes;
+        my @match;
+        for my $route (@routes) {
+            my $match = $route->match($req) or next;
+            push @match, $match;
         }
-
-        return;
+        if (@match > 1) {
+        }
+        return wantarray ? @match : $match[0];
     }
 }
 

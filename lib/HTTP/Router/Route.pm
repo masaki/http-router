@@ -33,7 +33,7 @@ has 'parts' => (
     is      => 'rw',
     isa     => 'Int',
     lazy    => 1,
-    default => sub { scalar @{[ split m!/! => $_[0]->path ]} },
+    default => sub { $_[0]->path =~ tr!/!/! },
 );
 
 has 'templates' => (
@@ -59,7 +59,7 @@ sub match {
     # path, captures
     my %vars;
     if ($self->variables) {
-        my $size = scalar @{[ split m!/! => $path ]};
+        my $size = $path =~ tr!/!/!;
         $size == $self->parts             or return; # FIXME: ignore parts
         %vars = $self->extract($path)     or return;
         $self->is_valid_variables(\%vars) or return;
