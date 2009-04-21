@@ -28,6 +28,7 @@ my $path_request       = request(path => '/');
 my $conditions_request = request(path => '/account/login', method => 'POST');
 my $validate_request   = request(path => '/archives/2009');
 my $resources_request  = request(path => '/users/new', method => 'GET');
+my $resource_request   = request(path => '/admin/edit', method => 'GET');
 my $var_resources      = request(path => '/users/masaki', method => 'GET');
 
 timethese(10000, {

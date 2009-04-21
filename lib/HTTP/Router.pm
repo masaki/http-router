@@ -83,7 +83,12 @@ sub match {
             push @match, $match;
         }
         if (@match > 1) {
-            # TODO: sort
+            # FIXME: sort
+            for my $match (@match) {
+                my @vars = $match->route->templates->variables;
+                $match = [ $match, scalar grep { exists $match->route->conditions->{$_} } @vars ];
+            }
+            @match = map { $_->[0] } sort { $b->[1] <=> $a->[1] } @match;
         }
         return wantarray ? @match : $match[0];
     }
