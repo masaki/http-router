@@ -16,10 +16,12 @@ my $router = router {
 
 is scalar @{[ $router->routes ]} => 28; # admin => 16, account => 8, user => 4
 
-match_ok $router, '/admin/settings',      { method => 'GET' }, 'matched user defined action';
-match_ok $router, '/admin/settings.html', { method => 'GET' }, 'matched user defined formatted action';
+params_ok $router, '/admin/settings', { method => 'GET' },
+    { controller => 'User::Admin', action => 'settings' };
+params_ok $router, '/admin/settings.html', { method => 'GET' },
+    { controller => 'User::Admin', action => 'settings', format => 'html' };
 
 match_not_ok $router, '/account/edit', { method => 'GET' }, 'not matched excepted action';
 
-match_ok     $router, '/user', { method => 'GET' },    'matched only action';
+params_ok $router, '/user', { method => 'GET' }, { controller => 'User', action => 'show' };
 match_not_ok $router, '/user', { method => 'DELETE' }, 'not matched !only action';

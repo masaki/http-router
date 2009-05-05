@@ -9,21 +9,28 @@ my $router = router {
 
 is scalar @{[ $router->routes ]} => 14;
 
-match_ok $router, '/account', { method => 'GET'    }, 'matched show';
-match_ok $router, '/account', { method => 'POST'   }, 'matched create';
-match_ok $router, '/account', { method => 'PUT'    }, 'matched update';
-match_ok $router, '/account', { method => 'DELETE' }, 'matched destroy';
+params_ok $router, '/account', { method => 'GET'    }, { controller => 'Account', action => 'show' };
+params_ok $router, '/account', { method => 'POST'   }, { controller => 'Account', action => 'create' };
+params_ok $router, '/account', { method => 'PUT'    }, { controller => 'Account', action => 'update' };
+params_ok $router, '/account', { method => 'DELETE' }, { controller => 'Account', action => 'destroy' };
 
-match_ok $router, '/account/new',    { method => 'GET' }, 'matched post';
-match_ok $router, '/account/edit',   { method => 'GET' }, 'matched edit';
-match_ok $router, '/account/delete', { method => 'GET' }, 'matched delete';
+params_ok $router, '/account/new',    { method => 'GET' }, { controller => 'Account', action => 'post' };
+params_ok $router, '/account/edit',   { method => 'GET' }, { controller => 'Account', action => 'edit' };
+params_ok $router, '/account/delete', { method => 'GET' }, { controller => 'Account', action => 'delete' };
 
 # with format
-match_ok $router, '/account.html', { method => 'GET'    }, 'matched formatted show';
-match_ok $router, '/account.html', { method => 'POST'   }, 'matched formatted create';
-match_ok $router, '/account.html', { method => 'PUT'    }, 'matched formatted update';
-match_ok $router, '/account.html', { method => 'DELETE' }, 'matched formatted destroy';
+params_ok $router, '/account.html', { method => 'GET' },
+    { controller => 'Account', action => 'show', format => 'html' };
+params_ok $router, '/account.html', { method => 'POST' },
+    { controller => 'Account', action => 'create', format => 'html' };
+params_ok $router, '/account.html', { method => 'PUT' },
+    { controller => 'Account', action => 'update', format => 'html' };
+params_ok $router, '/account.html', { method => 'DELETE' },
+    { controller => 'Account', action => 'destroy', format => 'html' };
 
-match_ok $router, '/account/new.html',    { method => 'GET' }, 'matched formatted post';
-match_ok $router, '/account/edit.html',   { method => 'GET' }, 'matched formatted edit';
-match_ok $router, '/account/delete.html', { method => 'GET' }, 'matched formatted delete';
+params_ok $router, '/account/new.html', { method => 'GET' },
+    { controller => 'Account', action => 'post', format => 'html' };
+params_ok $router, '/account/edit.html', { method => 'GET' },
+    { controller => 'Account', action => 'edit', format => 'html' };
+params_ok $router, '/account/delete.html', { method => 'GET' },
+    { controller => 'Account', action => 'delete', format => 'html' };

@@ -12,12 +12,18 @@ my $router = router {
 
 is scalar @{[ $router->routes ]} => 34;
 
-match_ok $router, '/account', { method => 'GET' };
-match_ok $router, '/account', { method => 'POST' };
-match_ok $router, '/account/settings', { method => 'GET' };
+params_ok $router, '/account', { method => 'GET' },
+    { controller => 'Account', action => 'show' };
+params_ok $router, '/account', { method => 'POST' },
+    { controller => 'Account', action => 'create' };
+params_ok $router, '/account/settings', { method => 'GET' },
+    { controller => 'Account', action => 'settings' };
 
-match_ok $router, '/account/admin', { method => 'GET' };
-match_ok $router, '/account/admin', { method => 'POST' };
+params_ok $router, '/account/admin', { method => 'GET' },
+    { controller => 'Admin', action => 'show' };
+params_ok $router, '/account/admin', { method => 'POST' },
+    { controller => 'Admin', action => 'create' };
 
-match_ok $router, '/account/user', { method => 'GET' };
+params_ok $router, '/account/user', { method => 'GET' },
+    { controller => 'User', action => 'show' };
 match_not_ok $router, '/account/user', { method => 'POST' };

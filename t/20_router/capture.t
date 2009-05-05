@@ -3,13 +3,13 @@ use Test::HTTP::Router;
 use HTTP::Router;
 
 my $r = HTTP::Router->new;
-$r->add_route('/{user_id}', params => { action => 'capture' });
+$r->add_route('/bar', params => { action => 'path' });
 $r->add_route(
     '/{year}',
     conditions => { year => qr/^\d{4}$/ },
     params     => { action => 'by_year' }
 );
-$r->add_route('/bar', params => { action => 'path' });
+$r->add_route('/{user_id}', params => { action => 'capture' });
 
 is @{[ $r->routes ]} => 3;
 

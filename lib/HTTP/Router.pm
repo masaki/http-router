@@ -40,12 +40,33 @@ sub _build_routes { [] }
 sub _build_inline_matcher {
     # TODO: not implemented yet
     sub {};
+=comment
+        my $path = $req->path;
+
+        my ($path_routes, $capture_routes) = do {
+            my $parts = $path =~ tr!/!/!;
+            part { $_->templates->expansions } grep { $_->parts <= $parts } $self->routes;
+        };
+
+        # path
+        for my $route (@$path_routes) {
+            my $match = $route->match($req) or next;
+            return $match; # return if found path route
+        }
+
+        # capture
+        for my $route (@$capture_routes) {
+            my $match = $route->match($req) or next;
+            return $match;
+        }
+=cut
 }
 
 sub add_route {
     my ($self, $thing, %args) = @_;
     $thing = HTTP::Router::Route->new(path => $thing, %args) unless blessed $thing;
     $self->add_raw_route($thing);
+    $self->clear_inline_matcher;
 }
 
 sub reset {
@@ -60,37 +81,15 @@ sub match {
     my $req  = blessed $_[0] ? $_[0] : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
 
     if ($self->use_inline_match) {
-        $self->inline_matcher->($req);
+        return $self->inline_matcher->($req);
     }
     else {
-        my $path = $req->path;
-
-        my ($path_routes, $capture_routes) = do {
-            my $parts = $path =~ tr!/!/!;
-            part { $_->templates->expansions } grep { $_->parts <= $parts } $self->routes;
-        };
-
-        # path
-        for my $route (@$path_routes) {
+        for my $route ($self->routes) {
             my $match = $route->match($req) or next;
-            return wantarray ? ($match) : $match; # return if found path route
+            return $match;
         }
 
-        # capture
-        my @match;
-        for my $route (@$capture_routes) {
-            my $match = $route->match($req) or next;
-            push @match, $match;
-        }
-        if (@match > 1) {
-            # FIXME: sort
-            for my $match (@match) {
-                my @vars = $match->route->templates->variables;
-                $match = [ $match, scalar grep { exists $match->route->conditions->{$_} } @vars ];
-            }
-            @match = map { $_->[0] } sort { $b->[1] <=> $a->[1] } @match;
-        }
-        return wantarray ? @match : $match[0];
+        return;
     }
 }
 
