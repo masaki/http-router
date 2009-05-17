@@ -25,7 +25,7 @@ has 'routes' => (
 has 'use_inline_match' => (
     is      => 'rw',
     isa     => 'Bool',
-    default => 0, # TODO: set to 1
+    default => 1,
 );
 
 has 'inline_matcher' => (
@@ -37,28 +37,29 @@ has 'inline_matcher' => (
 sub _build_routes { [] }
 
 sub _build_inline_matcher {
-    # TODO: not implemented yet
-    sub {};
-=comment
-        my $path = $req->path;
+    my $self = shift;
 
-        my ($path_routes, $capture_routes) = do {
-            my $parts = $path =~ tr!/!/!;
-            part { $_->templates->expansions } grep { $_->parts <= $parts } $self->routes;
-        };
+    my ($path_routes, $capture_routes) =
+        part { scalar $_->templates->expansions > 0 } $self->routes;
+
+    return sub {
+        my $req   = shift;
+        my $parts = $req->path =~ tr!/!/!;
 
         # path
-        for my $route (@$path_routes) {
+        for my $route (grep { $_->parts == $parts } @$path_routes) {
             my $match = $route->match($req) or next;
             return $match; # return if found path route
         }
 
         # capture
-        for my $route (@$capture_routes) {
+        for my $route (grep { $_->parts <= $parts } @$capture_routes) {
             my $match = $route->match($req) or next;
             return $match;
         }
-=cut
+
+        return;
+    };
 }
 
 around 'add_route' => sub {
@@ -67,15 +68,15 @@ around 'add_route' => sub {
     unless (blessed $route) {
         $route = HTTP::Router::Route->new(path => $route, @args);
     }
-    $self->clear_inline_matcher;
 
+    $self->clear_inline_matcher if $self->has_inline_matcher;
     $next->($self, $route);
 };
 
 sub reset {
     my $self = shift;
     $self->clear_routes;
-    $self->clear_inline_matcher;
+    $self->clear_inline_matcher if $self->has_inline_matcher;
     $self;
 }
 
