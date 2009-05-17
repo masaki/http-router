@@ -17,7 +17,7 @@ has 'routes' => (
     builder    => '_build_routes',
     auto_deref => 1,
     provides   => {
-        push  => 'add_raw_route',
+        push  => 'add_route',
         clear => 'clear_routes',
     },
 );
@@ -62,12 +62,16 @@ sub _build_inline_matcher {
 =cut
 }
 
-sub add_route {
-    my ($self, $thing, %args) = @_;
-    $thing = HTTP::Router::Route->new(path => $thing, %args) unless blessed $thing;
-    $self->add_raw_route($thing);
+around 'add_route' => sub {
+    my ($next, $self, $route, @args) = @_;
+
+    unless (blessed $route) {
+        $route = HTTP::Router::Route->new(path => $route, @args);
+    }
     $self->clear_inline_matcher;
-}
+
+    $next->($self, $route);
+};
 
 sub reset {
     my $self = shift;
