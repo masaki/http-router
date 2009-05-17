@@ -26,7 +26,6 @@ has 'use_inline_match' => (
     is      => 'rw',
     isa     => 'Bool',
     default => 0, # TODO: set to 1
-    trigger => sub { $_[0]->clear_inline_matcher },
 );
 
 has 'inline_matcher' => (
