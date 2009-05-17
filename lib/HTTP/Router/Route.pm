@@ -62,14 +62,14 @@ sub match {
         my $size = $path =~ tr!/!/!;
         $size == $self->parts             or return; # FIXME: ignore parts
         %vars = $self->extract($path)     or return;
-        $self->is_valid_variables(\%vars) or return;
+        $self->_is_valid_variables(\%vars) or return;
     }
     else {
         $path eq $self->path or return;
     }
 
     # conditions
-    $self->is_valid_request($req) or return;
+    $self->_is_valid_request($req) or return;
 
     for my $key (keys %{ $self->params }) {
         next if exists $vars{$key};
@@ -78,17 +78,17 @@ sub match {
     return HTTP::Router::Match->new(params => \%vars, route => $self);
 }
 
-sub is_valid_variables {
+sub _is_valid_variables {
     my ($self, $vars) = @_;
 
     for my $name (keys %$vars) {
-        return 0 unless $self->validate($vars->{$name}, $self->conditions->{$name});
+        return 0 unless $self->_validate($vars->{$name}, $self->conditions->{$name});
     }
 
     return 1;
 }
 
-sub is_valid_request {
+sub _is_valid_request {
     my ($self, $req) = @_;
 
     my $conditions = do {
@@ -104,13 +104,13 @@ sub is_valid_request {
             $value = 'GET' if $value eq 'HEAD';
         }
 
-        return 0 unless $self->validate($value, $self->conditions->{$name});
+        return 0 unless $self->_validate($value, $self->conditions->{$name});
     }
 
     return 1;
 }
 
-sub validate {
+sub _validate {
     my ($self, $input, $expected) = @_;
     # arguments
     return 0 unless defined $input;
@@ -125,7 +125,7 @@ sub uri_for {
     my ($self, $args) = @_;
 
     for my $name (keys %{ $args || {} }) {
-        return unless $self->validate($args->{$name}, $self->conditions->{$name});
+        return unless $self->_validate($args->{$name}, $self->conditions->{$name});
     }
 
     return $self->templates->process_to_string(%$args);
@@ -146,6 +146,14 @@ HTTP::Router::Route
 
 =head2 uri_for($captures?)
 
+=head2 append_path($path)
+
+=head2 add_params($params)
+
+=head2 add_conditions($conditions)
+
+=head2 extract($path)
+
 =head1 PROPERTIES
 
 =head2 path
@@ -154,17 +162,11 @@ HTTP::Router::Route
 
 =head2 conditions
 
-=head2 variables
-
 =head2 templates
 
-=head1 INTERNALS
+=heads parts
 
-=head2 check_variable_conditions
-
-=head2 check_request_conditions
-
-=head2 validate
+=head2 variables
 
 =head1 AUTHOR
 

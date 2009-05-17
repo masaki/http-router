@@ -17,7 +17,6 @@ has 'route' => (
 );
 
 no Any::Moose;
-
 __PACKAGE__->meta->make_immutable;
 
 =head1 NAME
