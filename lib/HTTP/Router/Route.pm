@@ -164,7 +164,7 @@ HTTP::Router::Route
 
 =head2 templates
 
-=heads parts
+=head2 parts
 
 =head2 variables
 
