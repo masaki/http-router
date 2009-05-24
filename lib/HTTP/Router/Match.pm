@@ -9,6 +9,13 @@ has 'params' => (
     default => sub { +{} },
 );
 
+has 'captures' => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    lazy    => 1,
+    default => sub { +{} },
+);
+
 has 'route' => (
     is       => 'ro',
     isa      => 'HTTP::Router::Route',

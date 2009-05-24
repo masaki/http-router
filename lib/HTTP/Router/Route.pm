@@ -57,12 +57,12 @@ sub match {
     defined $path or return;
 
     # path, captures
-    my %vars;
+    my %captures;
     if ($self->variables) {
         my $size = $path =~ tr!/!/!;
         $size == $self->parts             or return; # FIXME: ignore parts
-        %vars = $self->extract($path)     or return;
-        $self->_is_valid_variables(\%vars) or return;
+        %captures = $self->extract($path)     or return;
+        $self->_is_valid_variables(\%captures) or return;
     }
     else {
         $path eq $self->path or return;
@@ -71,11 +71,17 @@ sub match {
     # conditions
     $self->_is_valid_request($req) or return;
 
+    my %params = %captures;
     for my $key (keys %{ $self->params }) {
-        next if exists $vars{$key};
-        $vars{$key} = $self->params->{$key};
+        next if exists $params{$key};
+        $params{$key} = $self->params->{$key};
     }
-    return HTTP::Router::Match->new(params => \%vars, route => $self);
+
+    return HTTP::Router::Match->new(
+        params   => \%params,
+        captures => \%captures,
+        route    => $self,
+    );
 }
 
 sub _is_valid_variables {
