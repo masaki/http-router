@@ -158,11 +158,30 @@ Adds a new route.
 You can specify L<HTTP::Router::Route> object,
 or path string and options pair.
 
+example:
+
+  my $route = HTTP::Router::Route->new(
+      path       => '/',
+      conditions => { method => 'GET' },
+      params     => { controller => 'Root', action => 'index' },
+  );
+
+  $router->add_route($route);
+
+equals to:
+
+  $router->add_route('/' => (
+      conditions => { method => 'GET' },
+      params     => { controller => 'Root', action => 'index' },
+  ));
+
 =head2 routes
 
 Returns an array of registered routes.
 
 =head2 reset
+
+Clears registerd routes.
 
 =head2 match($req)
 
