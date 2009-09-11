@@ -139,23 +139,40 @@ HTTP::Router - Yet Another Path Router for HTTP
 
 =head1 DESCRIPTION
 
-HTTP::Router provides a Merb-like way of constructing routing tables.
+HTTP::Router provides a way of constructing routing tables.
+
+If you are interested in a Merb-like constructing way,
+please check L<HTTP::Router::Declare>.
 
 =head1 METHODS
 
 =head2 new
 
+Returns a HTTP::Router object.
+
 =head2 add_route($route)
 
 =head2 add_route($path, %args)
 
+Adds a new route.
+You can specify L<HTTP::Router::Route> object,
+or path string and options pair.
+
 =head2 routes
+
+Returns an array of registered routes.
 
 =head2 reset
 
 =head2 match($req)
 
+Returns a L<HTTP::Router::Match> object that matches a given request.
+If no routes match, it returns C<undef>.
+
 =head2 route_for($req)
+
+Returns a L<HTTP::Router::Route> object that matches a given request.
+If no routes match, it returns C<undef>.
 
 =head1 AUTHOR
 
