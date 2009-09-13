@@ -144,35 +144,75 @@ __PACKAGE__->meta->make_immutable;
 
 =head1 NAME
 
-HTTP::Router::Route
+HTTP::Router::Route - Route Representation for HTTP::Router
+
+=head1 SYNOPSIS
+
+  use HTTP::Router;
+  use HTTP::Router::Route;
+
+  my $router = HTTP::Router->new;
+
+  my $route = HTTP::Router::Route->new(
+      path       => '/',
+      conditions => { method => 'GET' },
+      params     => { controller => 'Root', action => 'index' },
+  );
+
+  $router->add_route($route);
 
 =head1 METHODS
 
 =head2 match($req)
 
-=head2 uri_for($captures?)
+Returns a L<HTTP::Router::Match> object, or C<undef>
+if route does not match a given request.
 
 =head2 append_path($path)
 
+Appends path to route.
+
 =head2 add_params($params)
+
+Adds parameters to route.
 
 =head2 add_conditions($conditions)
 
+Adds conditions to route.
+
 =head2 extract($path)
+
+Extracts variable values from $path, and returns variable hash.
+
+=head2 uri_for($captures?)
+
+Returns a path which is processed with parameters.
 
 =head1 PROPERTIES
 
 =head2 path
 
+Path string for route.
+
 =head2 params
+
+Route specific parameters.
 
 =head2 conditions
 
+Conditions for determining route.
+
 =head2 templates
+
+L<URI::Template::Restrict> representation with route path.
 
 =head2 parts
 
+Size of splitting route path with slash.
+
 =head2 variables
+
+Variable names in route path.
 
 =head1 AUTHOR
 
