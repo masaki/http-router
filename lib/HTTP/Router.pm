@@ -177,11 +177,11 @@ equals to:
 
 =head2 routes
 
-Returns an array of registered routes.
+Returns registered routes.
 
 =head2 reset
 
-Clears registerd routes.
+Clears registered routes.
 
 =head2 match($req)
 
