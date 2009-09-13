@@ -28,17 +28,27 @@ __PACKAGE__->meta->make_immutable;
 
 =head1 NAME
 
-HTTP::Router::Match
+HTTP::Router::Match - Matched Object Representation for HTTP::Router
 
 =head1 METHODS
 
 =head2 uri_for($args?)
 
+Returns a route path which is processed with parameters.
+
 =head1 PROPERTIES
 
 =head2 params
 
+Route parameters which was matched.
+
+=head2 captures
+
+Captured variable parameters which was matched.
+
 =head2 route
+
+L<HTTP::Router::Route> object which was matched.
 
 =head1 AUTHOR
 

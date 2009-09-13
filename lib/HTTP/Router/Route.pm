@@ -184,7 +184,7 @@ Adds conditions to route.
 
 Extracts variable values from $path, and returns variable hash.
 
-=head2 uri_for($captures?)
+=head2 uri_for($args?)
 
 Returns a path which is processed with parameters.
 
