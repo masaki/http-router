@@ -69,3 +69,38 @@ sub params_not_ok {
 }
 
 1;
+
+=head1 NAME
+
+Test::HTTP::Router - Route Testing
+
+=head1 SYNOPSIS
+
+  use Test::More;
+  use Test::HTTP::Router;
+  use HTTP::Router;
+
+  my $router = HTTP::Router->new;
+  $router->add_route('/' => (
+      conditions => { method => 'GET' },
+      params     => { controller => 'Root', action => 'index' },
+  ));
+
+  match_ok $router, '/', { method => 'GET' };
+  params_ok $router, '/', { method => 'GET' }, { controller => 'Root', action => 'index' };
+
+=head1 METHODS
+
+=head2 path_ok($router, $path, $message?)
+
+=head2 path_not_ok($router, $path, $message?)
+
+=head2 match_ok($router, $path, $conditions, $message?)
+
+=head2 match_not_ok($router, $path, $conditions, $message?)
+
+=head2 params_ok($router, $path, $conditions, $params, $message?)
+
+=head2 params_not_ok($router, $path, $conditions, $params, $message?)
+
+=cut

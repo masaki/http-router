@@ -241,38 +241,38 @@ HTTP::Router::Declare
   my $router = router {
       # path and params
       match '/' => to { controller => 'Root', action => 'index' };
-  
+
       # path, conditions, and params
       match '/home', { method => 'GET' }
           => to { controller => 'Home', action => 'show' };
       match '/date/{year}', { year => qr/^\d{4}$/ }
           => to { controller => 'Date', action => 'by_year' };
-  
+
       # path, params, and nesting
       match '/account' => to { controller => 'Account' } => then {
           match '/login'  => to { action => 'login' };
           match '/logout' => to { action => 'logout' };
       };
-  
+
       # path nesting
       match '/account' => then {
           match '/signup' => to { controller => 'Users', action => 'register' };
           match '/logout' => to { controller => 'Account', action => 'logout' };
       };
-  
+
       # conditions nesting
       match { method => 'GET' } => then {
           match '/search' => to { controller => 'Items', action => 'search' };
           match '/tags'   => to { controller => 'Tags', action => 'index' };
       };
-  
+
       # params nesting
       with { controller => 'Account' } => then {
           match '/login'  => to { action => 'login' };
           match '/logout' => to { action => 'logout' };
           match '/signup' => to { action => 'signup' };
       };
-  
+
       # match only
       match '/{controller}/{action}/{id}.{format}';
       match '/{controller}/{action}/{id}';
@@ -289,6 +289,10 @@ HTTP::Router::Declare
 =head2 with $params
 
 =head2 then $block
+
+=head2 resources $name
+
+=head2 resource $name
 
 =head1 AUTHOR
 
