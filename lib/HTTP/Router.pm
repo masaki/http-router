@@ -7,7 +7,7 @@ use Hash::AsObject;
 use List::MoreUtils 'part';
 use HTTP::Router::Route;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 has 'routes' => (
     is         => 'ro',
