@@ -1,9 +1,12 @@
 Revision history for Perl extension HTTP::Router
 
+0.03
+        - fixed dependencies
+
 0.02
-	- switched from Mouse to Any::Moose
-	- moved DSL route definitions to HTTP::Router::Declare
-	- added Test::HTTP::Router
+        - switched from Mouse to Any::Moose
+        - moved DSL route definitions to HTTP::Router::Declare
+        - added Test::HTTP::Router
 
 0.01
         - original version
