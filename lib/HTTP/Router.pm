@@ -6,6 +6,7 @@ use warnings;
 use base 'Class::Accessor::Fast';
 use Hash::AsObject;
 use List::MoreUtils 'part';
+use Scalar::Util 'blessed';
 use HTTP::Router::Route;
 
 our $VERSION = '0.03';
@@ -25,7 +26,7 @@ sub routes {
 sub add_route {
     my ($self, $route, @args) = @_;
 
-    unless (ref $route) {
+    unless (blessed $route) {
         $route = HTTP::Router::Route->new(path => $route, @args);
     }
 
@@ -85,7 +86,7 @@ sub reset {
 
 sub match {
     my $self = shift;
-    my $req  = ref $_[0] ? $_[0] : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
+    my $req  = blessed $_[0] ? $_[0] : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
 
     if ($self->code) {
         return $self->code->($req);
