@@ -31,6 +31,13 @@ test_requires 'Test::Deep';
 use_test_base;
 
 author_tests 'xt';
+author_requires 'Test::Pod';
+author_requires 'Test::Pod::Coverage';
+author_requires 'Test::Spelling';
+author_requires 'ShipIt';
+author_requires 'ShipIt::Step::Manifest';
+author_requires 'ShipIt::Step::DistClean';
+author_requires 'ShipIt::Step::Twitter';
 
 auto_include_deps;
 WriteAll;
