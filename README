@@ -1,27 +1,86 @@
-This is Perl module HTTP::Router.
+NAME
+    HTTP::Router - Yet Another Path Router for HTTP
 
-INSTALLATION
+SYNOPSIS
+      use HTTP::Router;
 
-HTTP::Router installation is straightforward. If your CPAN shell is set up,
-you should just be able to do
+      my $router = HTTP::Router->new;
 
-    % cpan HTTP::Router
+      my $route = HTTP::Router::Route->new(
+          path       => '/',
+          conditions => { method => 'GET' },
+          params     => { controller => 'Root', action => 'index' },
+      );
+      $router->add_route($route);
+      # or
+      $router->add_route('/' => (
+          conditions => { method => 'GET' },
+          params     => { controller => 'Root', action => 'index' },
+      ));
 
-Download it, unpack it, then build it as per the usual:
+      # GET /
+      my $match = $router->match($req);
+      $match->params;  # { controller => 'Root', action => 'index' }
+      $match->uri_for; # '/'
 
-    % perl Makefile.PL
-    % make && make test
+DESCRIPTION
+    HTTP::Router provides a way of constructing routing tables.
 
-Then install it:
+    If you are interested in a Merb-like constructing way, please check
+    HTTP::Router::Declare.
 
-    % make install
+METHODS
+  new
+    Returns a HTTP::Router object.
 
-DOCUMENTATION
+  add_route($route)
+  add_route($path, %args)
+    Adds a new route. You can specify HTTP::Router::Route object, or path
+    string and options pair.
 
-HTTP::Router documentation is available as in POD. So you can do:
+    example:
 
-    % perldoc HTTP::Router
+      my $route = HTTP::Router::Route->new(
+          path       => '/',
+          conditions => { method => 'GET' },
+          params     => { controller => 'Root', action => 'index' },
+      );
 
-to read the documentation online with your favorite pager.
+      $router->add_route($route);
 
-NAKAGAWA Masaki
+    equals to:
+
+      $router->add_route('/' => (
+          conditions => { method => 'GET' },
+          params     => { controller => 'Root', action => 'index' },
+      ));
+
+  routes
+    Returns registered routes.
+
+  reset
+    Clears registered routes.
+
+  match($req)
+    Returns a HTTP::Router::Match object that matches a given request. If no
+    routes match, it returns "undef".
+
+  route_for($req)
+    Returns a HTTP::Router::Route object that matches a given request. If no
+    routes match, it returns "undef".
+
+AUTHOR
+    NAKAGAWA Masaki <masaki@cpan.org>
+
+    Takatoshi Kitano <kitano.tk@gmail.com>
+
+LICENSE
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
+SEE ALSO
+    HTTP::Router::Declare, HTTP::Router::Route, HTTP::Router::Match,
+
+    MojoX::Routes, <http://merbivore.com/>, HTTPx::Dispatcher, Path::Router,
+    Path::Dispatcher
+
