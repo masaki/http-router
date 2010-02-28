@@ -1,30 +1,26 @@
 package HTTP::Router::Match;
 
-use Any::Moose;
+use strict;
+use warnings;
+use base 'Class::Accessor::Fast';
 
-has 'params' => (
-    is      => 'ro',
-    isa     => 'HashRef',
-    lazy    => 1,
-    default => sub { +{} },
-);
+__PACKAGE__->mk_accessors(qw'params captures route');
 
-has 'captures' => (
-    is      => 'ro',
-    isa     => 'HashRef',
-    lazy    => 1,
-    default => sub { +{} },
-);
+sub new {
+    my ($class, %args) = @_;
+    return bless {
+        params   => {},
+        captures => {},
+        %args,
+    }, $class;
+}
 
-has 'route' => (
-    is       => 'ro',
-    isa      => 'HTTP::Router::Route',
-    handles  => ['uri_for'],
-    required => 1,
-);
+sub uri_for {
+    my ($self, @args) = @_;
+    $self->route->uri_for(@args);
+}
 
-no Any::Moose;
-__PACKAGE__->meta->make_immutable;
+1;
 
 =head1 NAME
 

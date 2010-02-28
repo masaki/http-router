@@ -1,53 +1,59 @@
 package HTTP::Router::Route;
 
-use Any::Moose;
-use Any::Moose 'X::AttributeHelpers';
-use URI::Template::Restrict 0.03;
+use strict;
+use warnings;
+use base 'Class::Accessor::Fast';
+use URI::Template::Restrict;
 use HTTP::Router::Match;
 
-has 'path' => (
-    is         => 'rw',
-    isa        => 'Str',
-    metaclass  => 'String',
-    lazy_build => 1,
-    provides   => { append => 'append_path' },
-);
+__PACKAGE__->mk_accessors(qw'path params conditions');
 
-has 'params' => (
-    is         => 'rw',
-    isa        => 'HashRef',
-    metaclass  => 'Collection::Hash',
-    lazy_build => 1,
-    provides   => { set => 'add_params' },
-);
+sub new {
+    my ($class, %args) = @_;
+    return bless {
+        path       => '',
+        params     => {},
+        conditions => {},
+        %args,
+    }, $class;
+}
 
-has 'conditions' => (
-    is         => 'rw',
-    isa        => 'HashRef',
-    metaclass  => 'Collection::Hash',
-    lazy_build => 1,
-    provides   => { set => 'add_conditions' },
-);
+sub parts {
+    my $self = shift;
+    $self->{parts} ||= $self->path =~ tr!/!/!;
+}
 
-has 'parts' => (
-    is      => 'rw',
-    isa     => 'Int',
-    lazy    => 1,
-    default => sub { $_[0]->path =~ tr!/!/! },
-);
+sub append_path {
+    my ($self, $path) = @_;
+    $self->{path} .= (defined $path ? $path : '');
+}
 
-has 'templates' => (
-    is         => 'rw',
-    isa        => 'URI::Template::Restrict',
-    lazy_build => 1,
-    handles    => [qw'variables extract'],
-);
+{
+    no strict 'refs';
+    for my $name (qw'params conditions') {
+        *{"add_${name}"} = sub {
+            my ($self, %args) = @_;
+            while (my ($key, $value) = each %args) {
+                $self->$name->{$key} = $value;
+            }
+        };
+    }
+}
 
-sub _build_path       { '' }
-sub _build_params     { {} }
-sub _build_conditions { {} }
+sub templates {
+    my $self = shift;
+    $self->{templates} ||= URI::Template::Restrict->new($self->path);
+}
 
-sub _build_templates { URI::Template::Restrict->new($_[0]->path) }
+{
+    no strict 'refs';
+    for my $method (qw'variables extract') {
+        *{$method} = sub {
+            my ($self, @args) = @_;
+            $self->templates->$method(@args);
+        };
+    }
+}
 
 sub match {
     my ($self, $req) = @_;
@@ -137,8 +143,7 @@ sub uri_for {
     return $self->templates->process_to_string(%$args);
 }
 
-no Any::Moose;
-__PACKAGE__->meta->make_immutable;
+1;
 
 =for stopwords params
 

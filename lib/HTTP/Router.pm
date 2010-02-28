@@ -1,42 +1,44 @@
 package HTTP::Router;
 
 use 5.008_001;
-use Any::Moose;
-use Any::Moose 'X::AttributeHelpers';
+use strict;
+use warnings;
+use base 'Class::Accessor::Fast';
 use Hash::AsObject;
 use List::MoreUtils 'part';
 use HTTP::Router::Route;
 
 our $VERSION = '0.03';
 
-has 'routes' => (
-    is         => 'ro',
-    isa        => 'ArrayRef',
-    metaclass  => 'Collection::Array',
-    lazy       => 1,
-    builder    => '_build_routes',
-    auto_deref => 1,
-    provides   => {
-        push  => 'add_route',
-        clear => 'clear_routes',
-    },
-);
+__PACKAGE__->mk_accessors(qw'code');
 
-has 'use_inline_match' => (
-    is      => 'rw',
-    isa     => 'Bool',
-    default => 1,
-);
+sub new {
+    my $class = shift;
+    return bless { routes => [], code => undef }, $class;
+}
 
-has 'inline_matcher' => (
-    is         => 'rw',
-    isa        => 'CodeRef',
-    lazy_build => 1,
-);
+sub routes {
+    my $self = shift;
+    @{ $self->{routes} };
+}
 
-sub _build_routes { [] }
+sub add_route {
+    my ($self, $route, @args) = @_;
 
-sub _build_inline_matcher {
+    unless (ref $route) {
+        $route = HTTP::Router::Route->new(path => $route, @args);
+    }
+
+    $self->thaw;
+    push @{ $self->{routes} }, $route;
+}
+
+sub clear_routes {
+    my $self = shift;
+    $self->{routes} = [];
+}
+
+sub _build_code {
     my $self = shift;
 
     my ($path_routes, $capture_routes) =
@@ -62,30 +64,31 @@ sub _build_inline_matcher {
     };
 }
 
-around 'add_route' => sub {
-    my ($next, $self, $route, @args) = @_;
+sub freeze {
+    my $self = shift;
+    $self->code( $self->_build_code );
+    $self;
+}
 
-    unless (blessed $route) {
-        $route = HTTP::Router::Route->new(path => $route, @args);
-    }
-
-    $self->clear_inline_matcher if $self->has_inline_matcher;
-    $next->($self, $route);
-};
+sub thaw {
+    my $self = shift;
+    $self->code(undef);
+    $self;
+}
 
 sub reset {
     my $self = shift;
+    $self->thaw;
     $self->clear_routes;
-    $self->clear_inline_matcher if $self->has_inline_matcher;
     $self;
 }
 
 sub match {
     my $self = shift;
-    my $req  = blessed $_[0] ? $_[0] : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
+    my $req  = ref $_[0] ? $_[0] : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
 
-    if ($self->use_inline_match) {
-        return $self->inline_matcher->($req);
+    if ($self->code) {
+        return $self->code->($req);
     }
     else {
         for my $route ($self->routes) {
@@ -107,8 +110,7 @@ sub route_for {
     return;
 }
 
-no Any::Moose;
-__PACKAGE__->meta->make_immutable;
+1;
 
 =head1 NAME
 
