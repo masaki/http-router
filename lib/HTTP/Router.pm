@@ -3,7 +3,6 @@ package HTTP::Router;
 use 5.008_001;
 use strict;
 use warnings;
-use base 'Class::Accessor::Fast';
 use Hash::AsObject;
 use List::MoreUtils 'part';
 use Scalar::Util 'blessed';
@@ -11,11 +10,9 @@ use HTTP::Router::Route;
 
 our $VERSION = '0.03';
 
-__PACKAGE__->mk_accessors(qw'code');
-
 sub new {
     my $class = shift;
-    return bless { routes => [], code => undef }, $class;
+    return bless { routes => [], matcher => undef }, $class;
 }
 
 sub routes {
@@ -30,16 +27,33 @@ sub add_route {
         $route = HTTP::Router::Route->new(path => $route, @args);
     }
 
-    $self->thaw;
     push @{ $self->{routes} }, $route;
 }
 
-sub clear_routes {
+sub reset {
     my $self = shift;
-    $self->{routes} = [];
+    $self->thaw->{routes}  = [];
+    $self;
 }
 
-sub _build_code {
+sub freeze {
+    my $self = shift;
+    $self->{matcher} = $self->_build_matcher;
+    $self;
+}
+
+sub thaw {
+    my $self = shift;
+    $self->{matcher} = undef;
+    $self;
+}
+
+sub is_frozen {
+    my $self = shift;
+    defined $self->{matcher};
+}
+
+sub _build_matcher {
     my $self = shift;
 
     my ($path_routes, $capture_routes) =
@@ -65,31 +79,12 @@ sub _build_code {
     };
 }
 
-sub freeze {
-    my $self = shift;
-    $self->code( $self->_build_code );
-    $self;
-}
-
-sub thaw {
-    my $self = shift;
-    $self->code(undef);
-    $self;
-}
-
-sub reset {
-    my $self = shift;
-    $self->thaw;
-    $self->clear_routes;
-    $self;
-}
-
 sub match {
     my $self = shift;
     my $req  = blessed $_[0] ? $_[0] : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
 
-    if ($self->code) {
-        return $self->code->($req);
+    if (defined $self->{matcher}) {
+        return $self->{matcher}->($req);
     }
     else {
         for my $route ($self->routes) {
@@ -112,6 +107,8 @@ sub route_for {
 }
 
 1;
+
+=for stopwords inline
 
 =head1 NAME
 
@@ -185,6 +182,18 @@ Returns registered routes.
 =head2 reset
 
 Clears registered routes.
+
+=head2 freeze
+
+Creates inline matcher using registered routes.
+
+=head2 thaw
+
+Clears inline matcher.
+
+=head2 is_frozen
+
+Returns true if inline matcher is defined.
 
 =head2 match($req)
 
