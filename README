@@ -61,6 +61,15 @@ METHODS
   reset
     Clears registered routes.
 
+  freeze
+    Creates inline matcher using registered routes.
+
+  thaw
+    Clears inline matcher.
+
+  is_frozen
+    Returns true if inline matcher is defined.
+
   match($req)
     Returns a HTTP::Router::Match object that matches a given request. If no
     routes match, it returns "undef".

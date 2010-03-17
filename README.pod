@@ -1,3 +1,5 @@
+=for stopwords inline
+
 =head1 NAME
 
 HTTP::Router - Yet Another Path Router for HTTP
@@ -70,6 +72,18 @@ Returns registered routes.
 =head2 reset
 
 Clears registered routes.
+
+=head2 freeze
+
+Creates inline matcher using registered routes.
+
+=head2 thaw
+
+Clears inline matcher.
+
+=head2 is_frozen
+
+Returns true if inline matcher is defined.
 
 =head2 match($req)
 
