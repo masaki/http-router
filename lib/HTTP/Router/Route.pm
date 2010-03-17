@@ -5,6 +5,7 @@ use warnings;
 use base 'Class::Accessor::Fast';
 use URI::Template::Restrict;
 use HTTP::Router::Match;
+use Scalar::Util ();
 
 __PACKAGE__->mk_accessors(qw'path params conditions');
 
@@ -57,7 +58,7 @@ sub templates {
 
 sub match {
     my ($self, $req) = @_;
-    return unless blessed $req and $req->can('path');
+    return unless Scalar::Util::blessed($req) and $req->can('path');
 
     my $path = $req->path;
     defined $path or return;
