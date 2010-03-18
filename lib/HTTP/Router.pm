@@ -8,7 +8,7 @@ use List::MoreUtils 'part';
 use Scalar::Util ();
 use HTTP::Router::Route;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 sub new {
     my $class = shift;
