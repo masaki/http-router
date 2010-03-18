@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Hash::AsObject;
 use List::MoreUtils 'part';
-use Scalar::Util 'blessed';
+use Scalar::Util ();
 use HTTP::Router::Route;
 
 our $VERSION = '0.04';
@@ -23,7 +23,7 @@ sub routes {
 sub add_route {
     my ($self, $route, @args) = @_;
 
-    unless (blessed $route) {
+    unless (Scalar::Util::blessed($route)) {
         $route = HTTP::Router::Route->new(path => $route, @args);
     }
 
@@ -81,9 +81,12 @@ sub _build_matcher {
 
 sub match {
     my $self = shift;
-    my $req  = blessed $_[0] ? $_[0] : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
 
-    if (defined $self->{matcher}) {
+    my $req = Scalar::Util::blessed($_[0])
+        ? $_[0]
+        : Hash::AsObject->new(path => $_[0], %{ $_[1] || {} });
+
+    if ($self->is_frozen) {
         return $self->{matcher}->($req);
     }
     else {
