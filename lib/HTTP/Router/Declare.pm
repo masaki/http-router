@@ -11,13 +11,20 @@ use HTTP::Router;
 use HTTP::Router::Route;
 
 sub import {
+    my ($class, $template_class) = @_;
     my $caller = caller;
 
     no strict 'refs';
     no warnings 'redefine';
 
-    *{ $caller . '::router' } = \&routing;
-    *{ $caller . '::routes' } = \&routing; # alias router
+    my $routing = \&routing;
+    $routing = sub (&) {
+        push @_, template_class => $template_class;
+        goto &routing;
+    } if defined $template_class;
+
+    *{ $caller . '::router' } = $routing;
+    *{ $caller . '::routes' } = $routing; # alias router
 
     # lexical bindings
     *{ $caller . '::match' } = sub { goto &match };
@@ -43,7 +50,7 @@ sub _stub {
 }
 
 sub routing (&) {
-    my $block  = shift;
+    my ($block, %route_args) = @_;
     my $router = HTTP::Router->new;
 
     if ($block) {
@@ -57,7 +64,7 @@ sub routing (&) {
         local *resource  = create_resource($router);
         local *resources = create_resources($router);
 
-        my $root = HTTP::Router::Route->new;
+        my $root = HTTP::Router::Route->new(%route_args);
         $block->($root);
     }
 
@@ -163,6 +170,11 @@ sub _map_resources {
 sub _create_resources {
     my ($router, $name, $block, $args) = @_;
 
+    my $context = called_args(1)->[0];
+    die "Cannot nest resources under this template class!"
+        if $context->path
+        && $context->{template_class} ne $context->DEFAULT_TEMPLATE_CLASS;
+
     my %only   = map { $_ => 1 } @{ $args->{only}   || [] };
     my %except = map { $_ => 1 } @{ $args->{except} || [] };
 
@@ -237,6 +249,9 @@ HTTP::Router::Declare
 =head1 SYNOPSIS
 
   use HTTP::Router::Declare;
+
+  # Support for alternate path templates
+  # use HTTP::Router::Declare 'TemplateClass';
 
   my $router = router {
       # path and params

@@ -3,18 +3,20 @@ package HTTP::Router::Route;
 use strict;
 use warnings;
 use base 'Class::Accessor::Fast';
-use URI::Template::Restrict;
 use HTTP::Router::Match;
 use Scalar::Util ();
+
+use constant DEFAULT_TEMPLATE_CLASS => 'URI::Template::Restrict';
 
 __PACKAGE__->mk_accessors(qw'path params conditions');
 
 sub new {
     my ($class, %args) = @_;
     return bless {
-        path       => '',
-        params     => {},
-        conditions => {},
+        path           => '',
+        params         => {},
+        conditions     => {},
+        template_class => DEFAULT_TEMPLATE_CLASS,
         %args,
     }, $class;
 }
@@ -43,7 +45,9 @@ sub append_path {
 
 sub templates {
     my $self = shift;
-    $self->{templates} ||= URI::Template::Restrict->new($self->path);
+    return $self->{templates} if $self->{templates};
+    eval "require $self->{template_class}";
+    $self->{templates} = $self->{template_class}->new($self->path);
 }
 
 {
@@ -160,9 +164,10 @@ HTTP::Router::Route - Route Representation for HTTP::Router
   my $router = HTTP::Router->new;
 
   my $route = HTTP::Router::Route->new(
-      path       => '/',
-      conditions => { method => 'GET' },
-      params     => { controller => 'Root', action => 'index' },
+      path             => '/',
+      conditions       => { method => 'GET' },
+      params           => { controller => 'Root', action => 'index' },
+      # template_class => 'URI::Template::Restrict',
   );
 
   $router->add_route($route);
