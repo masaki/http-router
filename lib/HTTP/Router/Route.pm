@@ -5,6 +5,7 @@ use warnings;
 use base 'Class::Accessor::Fast';
 use HTTP::Router::Match;
 use Scalar::Util ();
+use List::MoreUtils ();
 
 use constant DEFAULT_TEMPLATE_CLASS => 'URI::Template::Restrict';
 
@@ -21,6 +22,7 @@ sub new {
     }, $class;
 }
 
+# deprecated?
 sub parts {
     my $self = shift;
     $self->{parts} ||= $self->path =~ tr!/!/!;
@@ -69,11 +71,14 @@ sub match {
 
     # path, captures
     my %captures;
-    if ($self->variables) {
-        my $size = $path =~ tr!/!/!;
-        $size == $self->parts             or return; # FIXME: ignore parts
-        %captures = $self->extract($path)     or return;
-        $self->_is_valid_variables(\%captures) or return;
+    if (my @vars = $self->variables) {
+        %captures = $self->extract($path)                   or return;
+        @vars == keys %captures                             or return;
+        List::MoreUtils::all { exists $captures{$_} } @vars or return;
+        
+        # Since we have no facility to validate static URI components,
+        # we'll have to self-generate a URI and validate that instead.
+        $path eq ($self->uri_for(\%captures) || '')         or return;
     }
     else {
         $path eq $self->path or return;
@@ -140,11 +145,7 @@ sub _validate {
 
 sub uri_for {
     my ($self, $args) = @_;
-
-    for my $name (keys %{ $args || {} }) {
-        return unless $self->_validate($args->{$name}, $self->conditions->{$name});
-    }
-
+    return unless $self->_is_valid_variables($args || {});
     return $self->templates->process_to_string(%$args);
 }
 
