@@ -78,7 +78,7 @@ sub match {
         
         # Since we have no facility to validate static URI components,
         # we'll have to self-generate a URI and validate that instead.
-        $path eq ($self->uri_for(\%captures) || '')         or return;
+        $path eq ($self->uri_for({ %captures, %{$self->params} }) || '') or return;
     }
     else {
         $path eq $self->path or return;
@@ -105,6 +105,10 @@ sub _is_valid_variables {
 
     for my $name (keys %$vars) {
         return 0 unless $self->_validate($vars->{$name}, $self->conditions->{$name});
+    }
+
+    for my $name (keys %{$self->params}) {
+        return unless $self->_validate($vars->{$name}, $self->params->{$name});
     }
 
     return 1;
