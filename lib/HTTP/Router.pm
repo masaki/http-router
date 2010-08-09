@@ -109,6 +109,16 @@ sub route_for {
     return;
 }
 
+sub uri_for {
+    my ($self, %args) = @_;
+    my @routes = $self->routes;
+
+    my $uri;
+    $uri = shift(@routes)->uri_for(\%args) while !$uri and @routes;
+
+    return $uri;
+}
+
 1;
 
 =for stopwords inline
@@ -206,6 +216,11 @@ If no routes match, it returns C<undef>.
 =head2 route_for($req)
 
 Returns a L<HTTP::Router::Route> object that matches a given request.
+If no routes match, it returns C<undef>.
+
+=head2 uri_for(%args)
+
+Returns the first URI that will route to the given criteria.
 If no routes match, it returns C<undef>.
 
 =head1 AUTHOR
